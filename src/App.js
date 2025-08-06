@@ -40,6 +40,22 @@ const App = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  
+  // Modal and form state
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [clientForm, setClientForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    total_balance: '',
+    paid_amount: '',
+    next_due_date: '',
+    status: 'Active',
+    payment_plan: '',
+    law_firm: '',
+    retainer_signed: false,
+    third_party_payor: ''
+  });
 
   // Database Functions
   const fetchClients = async () => {
@@ -107,20 +123,23 @@ const App = () => {
     }
   };
 
-  const addClient = async () => {
+  const addClient = async (e) => {
+    e.preventDefault();
+    
     try {
       const newClient = {
-        name: 'New Client',
-        email: 'new@client.com',
-        phone: '(555) 000-0000',
-        total_balance: 1000,
-        paid_amount: 0,
-        next_due_date: '2025-09-01',
-        status: 'Active',
-        payment_plan: 'Monthly - $250',
+        name: clientForm.name,
+        email: clientForm.email,
+        phone: clientForm.phone,
+        total_balance: parseFloat(clientForm.total_balance) || 0,
+        paid_amount: parseFloat(clientForm.paid_amount) || 0,
+        next_due_date: clientForm.next_due_date,
+        status: clientForm.status,
+        payment_plan: clientForm.payment_plan,
         payment_status: 'Pending',
-        law_firm: 'Select Law Firm',
-        retainer_signed: false,
+        law_firm: clientForm.law_firm,
+        retainer_signed: clientForm.retainer_signed,
+        third_party_payor: clientForm.third_party_payor || null,
         user_id: user?.id,
         created_at: new Date().toISOString()
       };
@@ -133,7 +152,24 @@ const App = () => {
       if (error) throw error;
 
       setClients(prev => [data[0], ...prev]);
-      await addNotification('New client added successfully', 'info');
+      await addNotification(`Client ${clientForm.name} added successfully`, 'info');
+      
+      // Reset form and close modal
+      setClientForm({
+        name: '',
+        email: '',
+        phone: '',
+        total_balance: '',
+        paid_amount: '',
+        next_due_date: '',
+        status: 'Active',
+        payment_plan: '',
+        law_firm: '',
+        retainer_signed: false,
+        third_party_payor: ''
+      });
+      setShowAddClientModal(false);
+      
     } catch (error) {
       console.error('Error adding client:', error);
       await addNotification('Error adding client', 'alert');
@@ -681,6 +717,95 @@ const App = () => {
     infoNotification: {
       borderLeftColor: '#3b82f6',
       backgroundColor: '#eff6ff'
+    },
+    // Modal styles
+    modalOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    },
+    modal: {
+      backgroundColor: '#fff',
+      borderRadius: '12px',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      width: '90%',
+      maxWidth: '600px',
+      maxHeight: '90vh',
+      overflow: 'auto'
+    },
+    modalHeader: {
+      padding: '24px 24px 0 24px',
+      borderBottom: '1px solid #e5e7eb'
+    },
+    modalTitle: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      color: '#111827',
+      margin: 0,
+      paddingBottom: '16px'
+    },
+    modalBody: {
+      padding: '24px'
+    },
+    modalFooter: {
+      padding: '16px 24px 24px 24px',
+      display: 'flex',
+      gap: '12px',
+      justifyContent: 'flex-end'
+    },
+    formGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gap: '16px',
+      marginBottom: '16px'
+    },
+    formGroup: {
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    formLabel: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#374151',
+      marginBottom: '6px'
+    },
+    formInput: {
+      padding: '8px 12px',
+      border: '1px solid #d1d5db',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontFamily: 'inherit'
+    },
+    formSelect: {
+      padding: '8px 12px',
+      border: '1px solid #d1d5db',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontFamily: 'inherit',
+      backgroundColor: '#fff'
+    },
+    formCheckbox: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      marginTop: '8px'
+    },
+    cancelButton: {
+      backgroundColor: '#6b7280',
+      color: '#fff',
+      padding: '8px 16px',
+      borderRadius: '6px',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
     }
   };
 
@@ -740,6 +865,165 @@ const App = () => {
       </div>
     );
   }
+
+  // Add Client Modal Component
+  const AddClientModal = () => {
+    if (!showAddClientModal) return null;
+
+    return (
+      <div style={styles.modalOverlay} onClick={() => setShowAddClientModal(false)}>
+        <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div style={styles.modalHeader}>
+            <h2 style={styles.modalTitle}>Add New Client</h2>
+          </div>
+          
+          <form onSubmit={addClient}>
+            <div style={styles.modalBody}>
+              <div style={styles.formGrid}>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Full Name *</label>
+                  <input
+                    type="text"
+                    value={clientForm.name}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, name: e.target.value }))}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Email Address</label>
+                  <input
+                    type="email"
+                    value={clientForm.email}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, email: e.target.value }))}
+                    style={styles.formInput}
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Phone Number</label>
+                  <input
+                    type="tel"
+                    value={clientForm.phone}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, phone: e.target.value }))}
+                    style={styles.formInput}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Law Firm</label>
+                  <input
+                    type="text"
+                    value={clientForm.law_firm}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, law_firm: e.target.value }))}
+                    style={styles.formInput}
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Total Balance ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={clientForm.total_balance}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, total_balance: e.target.value }))}
+                    style={styles.formInput}
+                    placeholder="0.00"
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Amount Paid ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={clientForm.paid_amount}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, paid_amount: e.target.value }))}
+                    style={styles.formInput}
+                    placeholder="0.00"
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Next Due Date</label>
+                  <input
+                    type="date"
+                    value={clientForm.next_due_date}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, next_due_date: e.target.value }))}
+                    style={styles.formInput}
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Payment Plan</label>
+                  <input
+                    type="text"
+                    value={clientForm.payment_plan}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, payment_plan: e.target.value }))}
+                    style={styles.formInput}
+                    placeholder="Monthly - $500"
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Status</label>
+                  <select
+                    value={clientForm.status}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, status: e.target.value }))}
+                    style={styles.formSelect}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Past Due">Past Due</option>
+                    <option value="Paid in Full">Paid in Full</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Third Party Payor</label>
+                  <input
+                    type="text"
+                    value={clientForm.third_party_payor}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, third_party_payor: e.target.value }))}
+                    style={styles.formInput}
+                    placeholder="Insurance Company, etc."
+                  />
+                </div>
+              </div>
+              
+              <div style={styles.formCheckbox}>
+                <input
+                  type="checkbox"
+                  checked={clientForm.retainer_signed}
+                  onChange={(e) => setClientForm(prev => ({ ...prev, retainer_signed: e.target.checked }))}
+                />
+                <label style={styles.formLabel}>Retainer Agreement Signed</label>
+              </div>
+            </div>
+            
+            <div style={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={() => setShowAddClientModal(false)}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={styles.button}
+              >
+                <Plus style={{ width: '16px', height: '16px' }} />
+                Add Client
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
 
   // Rest of your components (Dashboard, Clients, Collections, etc.) - keeping the same structure
   const DashboardTab = () => (
@@ -828,7 +1112,7 @@ const App = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={styles.sectionTitle}>Client Management</h2>
-        <button onClick={addClient} style={styles.button}>
+        <button onClick={() => setShowAddClientModal(true)} style={styles.button}>
           <Plus style={{ width: '16px', height: '16px' }} />
           Add Client
         </button>
@@ -934,6 +1218,9 @@ const App = () => {
 
   return (
     <div style={styles.container}>
+      {/* Add Client Modal */}
+      <AddClientModal />
+      
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
