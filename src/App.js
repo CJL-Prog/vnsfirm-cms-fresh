@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { DollarSign, Users, AlertTriangle, Mail, MessageSquare, CreditCard, TrendingUp, Phone, Eye, Plus, Search, Filter, Bell, Settings, User, LogOut } from 'lucide-react';
+import { supabase } from './lib/supabase';
+
+// Test connection
+console.log('Supabase client:', supabase);
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
