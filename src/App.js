@@ -866,164 +866,7 @@ const App = () => {
     );
   }
 
-  // Add Client Modal Component
-  const AddClientModal = () => {
-    if (!showAddClientModal) return null;
-
-    return (
-      <div style={styles.modalOverlay} onClick={() => setShowAddClientModal(false)}>
-        <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-          <div style={styles.modalHeader}>
-            <h2 style={styles.modalTitle}>Add New Client</h2>
-          </div>
-          
-          <form onSubmit={addClient}>
-            <div style={styles.modalBody}>
-              <div style={styles.formGrid}>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Full Name *</label>
-                  <input
-                    type="text"
-                    value={clientForm.name}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, name: e.target.value }))}
-                    style={styles.formInput}
-                    required
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Email Address</label>
-                  <input
-                    type="email"
-                    value={clientForm.email}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, email: e.target.value }))}
-                    style={styles.formInput}
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Phone Number</label>
-                  <input
-                    type="tel"
-                    value={clientForm.phone}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, phone: e.target.value }))}
-                    style={styles.formInput}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Law Firm</label>
-                  <input
-                    type="text"
-                    value={clientForm.law_firm}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, law_firm: e.target.value }))}
-                    style={styles.formInput}
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Total Balance ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={clientForm.total_balance}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, total_balance: e.target.value }))}
-                    style={styles.formInput}
-                    placeholder="0.00"
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Amount Paid ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={clientForm.paid_amount}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, paid_amount: e.target.value }))}
-                    style={styles.formInput}
-                    placeholder="0.00"
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Next Due Date</label>
-                  <input
-                    type="date"
-                    value={clientForm.next_due_date}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, next_due_date: e.target.value }))}
-                    style={styles.formInput}
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Payment Plan</label>
-                  <input
-                    type="text"
-                    value={clientForm.payment_plan}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, payment_plan: e.target.value }))}
-                    style={styles.formInput}
-                    placeholder="Monthly - $500"
-                  />
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Status</label>
-                  <select
-                    value={clientForm.status}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, status: e.target.value }))}
-                    style={styles.formSelect}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Past Due">Past Due</option>
-                    <option value="Paid in Full">Paid in Full</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-                
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Third Party Payor</label>
-                  <input
-                    type="text"
-                    value={clientForm.third_party_payor}
-                    onChange={(e) => setClientForm(prev => ({ ...prev, third_party_payor: e.target.value }))}
-                    style={styles.formInput}
-                    placeholder="Insurance Company, etc."
-                  />
-                </div>
-              </div>
-              
-              <div style={styles.formCheckbox}>
-                <input
-                  type="checkbox"
-                  checked={clientForm.retainer_signed}
-                  onChange={(e) => setClientForm(prev => ({ ...prev, retainer_signed: e.target.checked }))}
-                />
-                <label style={styles.formLabel}>Retainer Agreement Signed</label>
-              </div>
-            </div>
-            
-            <div style={styles.modalFooter}>
-              <button
-                type="button"
-                onClick={() => setShowAddClientModal(false)}
-                style={styles.cancelButton}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                style={styles.button}
-              >
-                <Plus style={{ width: '16px', height: '16px' }} />
-                Add Client
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
+  // Rest of your components (Dashboard, Clients, Collections, etc.) - keeping the same structure
 
   // Rest of your components (Dashboard, Clients, Collections, etc.) - keeping the same structure
   const DashboardTab = () => (
@@ -1112,11 +955,178 @@ const App = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={styles.sectionTitle}>Client Management</h2>
-        <button onClick={() => setShowAddClientModal(true)} style={styles.button}>
+        <button 
+          onClick={() => {
+            console.log('Add Client clicked - opening modal');
+            setShowAddClientModal(true);
+          }} 
+          style={styles.button}
+        >
           <Plus style={{ width: '16px', height: '16px' }} />
           Add Client
         </button>
       </div>
+
+      {/* Modal */}
+      {showAddClientModal && (
+        <div 
+          style={styles.modalOverlay}
+          onClick={() => setShowAddClientModal(false)}
+        >
+          <div 
+            style={styles.modal} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Add New Client</h2>
+            </div>
+            
+            <form onSubmit={addClient}>
+              <div style={styles.modalBody}>
+                <div style={styles.formGrid}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Full Name *</label>
+                    <input
+                      type="text"
+                      value={clientForm.name}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, name: e.target.value }))}
+                      style={styles.formInput}
+                      required
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Email Address</label>
+                    <input
+                      type="email"
+                      value={clientForm.email}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, email: e.target.value }))}
+                      style={styles.formInput}
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Phone Number</label>
+                    <input
+                      type="tel"
+                      value={clientForm.phone}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, phone: e.target.value }))}
+                      style={styles.formInput}
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Law Firm</label>
+                    <input
+                      type="text"
+                      value={clientForm.law_firm}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, law_firm: e.target.value }))}
+                      style={styles.formInput}
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Total Balance ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={clientForm.total_balance}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, total_balance: e.target.value }))}
+                      style={styles.formInput}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Amount Paid ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={clientForm.paid_amount}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, paid_amount: e.target.value }))}
+                      style={styles.formInput}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Next Due Date</label>
+                    <input
+                      type="date"
+                      value={clientForm.next_due_date}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, next_due_date: e.target.value }))}
+                      style={styles.formInput}
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Payment Plan</label>
+                    <input
+                      type="text"
+                      value={clientForm.payment_plan}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, payment_plan: e.target.value }))}
+                      style={styles.formInput}
+                      placeholder="Monthly - $500"
+                    />
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Status</label>
+                    <select
+                      value={clientForm.status}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, status: e.target.value }))}
+                      style={styles.formSelect}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Past Due">Past Due</option>
+                      <option value="Paid in Full">Paid in Full</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                  
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Third Party Payor</label>
+                    <input
+                      type="text"
+                      value={clientForm.third_party_payor}
+                      onChange={(e) => setClientForm(prev => ({ ...prev, third_party_payor: e.target.value }))}
+                      style={styles.formInput}
+                      placeholder="Insurance Company, etc."
+                    />
+                  </div>
+                </div>
+                
+                <div style={styles.formCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={clientForm.retainer_signed}
+                    onChange={(e) => setClientForm(prev => ({ ...prev, retainer_signed: e.target.checked }))}
+                  />
+                  <label style={styles.formLabel}>Retainer Agreement Signed</label>
+                </div>
+              </div>
+              
+              <div style={styles.modalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddClientModal(false)}
+                  style={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={styles.button}
+                >
+                  <Plus style={{ width: '16px', height: '16px' }} />
+                  Add Client
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div style={styles.searchContainer}>
         <div style={styles.searchHeader}>
@@ -1218,9 +1228,6 @@ const App = () => {
 
   return (
     <div style={styles.container}>
-      {/* Add Client Modal */}
-      <AddClientModal />
-      
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
