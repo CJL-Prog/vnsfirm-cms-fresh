@@ -2523,9 +2523,465 @@ const App = () => {
     </div>
   );
 
-  // Keeping other tabs the same for now
-  const CollectionsTab = () => <div style={styles.chartCard}><h3>Collections - Coming Soon</h3></div>;
-  const IntegrationsTab = () => <div style={styles.chartCard}><h3>Integrations - Coming Soon</h3></div>;
+
+const CollectionsTab = () => {
+  const [collectionView, setCollectionView] = useState('overview'); // 'overview', 'efforts', 'templates'
+  const [selectedCollectionClient, setSelectedCollectionClient] = useState(null);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [collectionType, setCollectionType] = useState('SMS');
+  const [customMessage, setCustomMessage] = useState('');
+  
+  // Calculate past due clients
+  const pastDueClients = clients.filter(c => 
+    c.status === 'Past Due' || 
+    (c.total_balance - c.paid_amount > 0 && c.next_due_date && new Date(c.next_due_date) < new Date())
+  );
+  
+  // Calculate collection metrics
+  const totalPastDue = pastDueClients.reduce((sum, c) => sum + ((c.total_balance || 0) - (c.paid_amount || 0)), 0);
+  const avgDaysOverdue = pastDueClients.reduce((sum, c) => {
+    if (c.next_due_date) {
+      const daysOverdue = Math.floor((new Date() - new Date(c.next_due_date)) / (1000 * 60 * 60 * 24));
+      return sum + Math.max(0, daysOverdue);
+    }
+    return sum;
+  }, 0) / (pastDueClients.length || 1);
+  
+  const sendCollectionMessage = async (client, type, message) => {
+    try {
+      const newEffort = {
+        client_id: client.id,
+        type: type,
+        message: message || `${type} reminder sent to ${client.name}`,
+        sent_date: new Date().toISOString().split('T')[0],
+        status: 'Sent',
+        created_by: user?.email
+      };
+
+      const { data, error } = await supabase
+        .from('collection_efforts')
+        .insert([newEffort])
+        .select();
+
+      if (error) throw error;
+
+      setCollectionEfforts(prev => [data[0], ...prev]);
+      await addNotification(`${type} sent to ${client.name}`, 'info');
+      
+      // Close modal and reset
+      setShowCollectionModal(false);
+      setSelectedCollectionClient(null);
+      setCustomMessage('');
+      
+    } catch (error) {
+      console.error(`Error sending ${type}:`, error);
+      await addNotification(`Error sending ${type}`, 'alert');
+    }
+  };
+  
+  const getTemplateMessage = (client, daysPastDue) => {
+    const amount = ((client.total_balance || 0) - (client.paid_amount || 0)).toLocaleString();
+    const firmName = client.law_firm || 'VNS Firm';
+    
+    if (daysPastDue === 0) {
+      return templates.smsDueDate
+        .replace('{clientName}', client.name)
+        .replace('{lawFirm}', firmName)
+        .replace('{amount}', amount);
+    } else if (daysPastDue <= 3) {
+      return templates.smsDay3
+        .replace('{clientName}', client.name)
+        .replace('{lawFirm}', firmName)
+        .replace('{amount}', amount);
+    } else if (daysPastDue <= 5) {
+      return templates.smsDay5
+        .replace('{clientName}', client.name)
+        .replace('{lawFirm}', firmName)
+        .replace('{amount}', amount);
+    } else {
+      return templates.smsDay7
+        .replace('{clientName}', client.name)
+        .replace('{lawFirm}', firmName)
+        .replace('{amount}', amount);
+    }
+  };
+  
+  // Get recent collection efforts for a client
+  const getClientRecentEfforts = (clientId) => {
+    return collectionEfforts
+      .filter(e => e.client_id === clientId)
+      .slice(0, 3);
+  };
+  
+  if (collectionView === 'templates') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={styles.sectionTitle}>Collection Templates</h2>
+          <button 
+            onClick={() => setCollectionView('overview')} 
+            style={styles.button}
+          >
+            Back to Overview
+          </button>
+        </div>
+        
+        <div style={styles.chartCard}>
+          <h3 style={styles.chartTitle}>SMS Templates</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#374151' }}>Day Before Due</h4>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDayBefore}</p>
+            </div>
+            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#374151' }}>Due Date</h4>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDueDate}</p>
+            </div>
+            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>3 Days Past Due</h4>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDay3}</p>
+            </div>
+            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>7 Days Past Due (Final)</h4>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDay7}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (collectionView === 'efforts') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={styles.sectionTitle}>Collection History</h2>
+          <button 
+            onClick={() => setCollectionView('overview')} 
+            style={styles.button}
+          >
+            Back to Overview
+          </button>
+        </div>
+        
+        <div style={styles.searchContainer}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead style={styles.tableHeader}>
+                <tr>
+                  <th style={styles.tableHeaderCell}>Date</th>
+                  <th style={styles.tableHeaderCell}>Client</th>
+                  <th style={styles.tableHeaderCell}>Type</th>
+                  <th style={styles.tableHeaderCell}>Message</th>
+                  <th style={styles.tableHeaderCell}>Status</th>
+                  <th style={styles.tableHeaderCell}>Sent By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {collectionEfforts.map((effort) => {
+                  const client = clients.find(c => c.id === effort.client_id);
+                  return (
+                    <tr key={effort.id} style={styles.tableRow}>
+                      <td style={styles.tableCell}>
+                        {new Date(effort.sent_date).toLocaleDateString()}
+                      </td>
+                      <td style={styles.tableCell}>{client?.name || 'Unknown'}</td>
+                      <td style={styles.tableCell}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: effort.type === 'SMS' ? '#dbeafe' : 
+                                         effort.type === 'EMAIL' ? '#f3e8ff' : '#fef3c7',
+                          color: effort.type === 'SMS' ? '#1e40af' : 
+                                effort.type === 'EMAIL' ? '#7c3aed' : '#d97706'
+                        }}>
+                          {effort.type}
+                        </span>
+                      </td>
+                      <td style={styles.tableCell}>
+                        <div style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {effort.message}
+                        </div>
+                      </td>
+                      <td style={styles.tableCell}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          ...styles.statusOnTime
+                        }}>
+                          {effort.status}
+                        </span>
+                      </td>
+                      <td style={styles.tableCell}>{effort.created_by || 'System'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Main Overview
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={styles.sectionTitle}>Collections Management</h2>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={() => setCollectionView('templates')} 
+            style={styles.button}
+          >
+            <FileText style={{ width: '16px', height: '16px' }} />
+            Templates
+          </button>
+          <button 
+            onClick={() => setCollectionView('efforts')} 
+            style={styles.button}
+          >
+            <MessageSquare style={{ width: '16px', height: '16px' }} />
+            History
+          </button>
+        </div>
+      </div>
+      
+      {/* Collection Metrics */}
+      <div style={styles.metricsGrid}>
+        <div style={{ ...styles.metricCard, borderLeft: '4px solid #ef4444' }}>
+          <AlertTriangle style={{ ...styles.metricIcon, color: '#ef4444' }} />
+          <div>
+            <p style={styles.metricLabel}>Past Due Accounts</p>
+            <p style={styles.metricValue}>{pastDueClients.length}</p>
+          </div>
+        </div>
+        
+        <div style={{ ...styles.metricCard, borderLeft: '4px solid #f59e0b' }}>
+          <DollarSign style={{ ...styles.metricIcon, color: '#f59e0b' }} />
+          <div>
+            <p style={styles.metricLabel}>Total Past Due</p>
+            <p style={styles.metricValue}>${totalPastDue.toLocaleString()}</p>
+          </div>
+        </div>
+        
+        <div style={{ ...styles.metricCard, borderLeft: '4px solid #8b5cf6' }}>
+          <TrendingUp style={{ ...styles.metricIcon, color: '#8b5cf6' }} />
+          <div>
+            <p style={styles.metricLabel}>Avg Days Overdue</p>
+            <p style={styles.metricValue}>{Math.round(avgDaysOverdue)}</p>
+          </div>
+        </div>
+        
+        <div style={{ ...styles.metricCard, borderLeft: '4px solid #10b981' }}>
+          <MessageSquare style={{ ...styles.metricIcon, color: '#10b981' }} />
+          <div>
+            <p style={styles.metricLabel}>Collection Efforts</p>
+            <p style={styles.metricValue}>{collectionEfforts.length}</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Collection Actions Modal */}
+      {showCollectionModal && selectedCollectionClient && (
+        <div 
+          style={styles.modalOverlay}
+          onClick={() => setShowCollectionModal(false)}
+        >
+          <div 
+            style={styles.modal} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Send Collection Message</h2>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <p style={{ marginBottom: '16px' }}>
+                <strong>Client:</strong> {selectedCollectionClient.name}<br/>
+                <strong>Amount Due:</strong> ${((selectedCollectionClient.total_balance || 0) - (selectedCollectionClient.paid_amount || 0)).toLocaleString()}
+              </p>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Message Type</label>
+                <select
+                  value={collectionType}
+                  onChange={(e) => setCollectionType(e.target.value)}
+                  style={styles.formSelect}
+                >
+                  <option value="SMS">SMS</option>
+                  <option value="EMAIL">Email</option>
+                  <option value="CALL">Phone Call</option>
+                </select>
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Message</label>
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  placeholder={getTemplateMessage(selectedCollectionClient, 
+                    Math.floor((new Date() - new Date(selectedCollectionClient.next_due_date)) / (1000 * 60 * 60 * 24))
+                  )}
+                  style={{ ...styles.formInput, minHeight: '120px', resize: 'vertical' }}
+                />
+              </div>
+            </div>
+            
+            <div style={styles.modalFooter}>
+              <button
+                onClick={() => setShowCollectionModal(false)}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => sendCollectionMessage(
+                  selectedCollectionClient, 
+                  collectionType, 
+                  customMessage || getTemplateMessage(selectedCollectionClient, 
+                    Math.floor((new Date() - new Date(selectedCollectionClient.next_due_date)) / (1000 * 60 * 60 * 24))
+                  )
+                )}
+                style={styles.button}
+              >
+                Send {collectionType}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Past Due Clients Table */}
+      <div style={styles.searchContainer}>
+        <div style={styles.searchHeader}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Past Due Accounts</h3>
+        </div>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table style={styles.table}>
+            <thead style={styles.tableHeader}>
+              <tr>
+                <th style={styles.tableHeaderCell}>Client</th>
+                <th style={styles.tableHeaderCell}>Days Overdue</th>
+                <th style={styles.tableHeaderCell}>Amount Due</th>
+                <th style={styles.tableHeaderCell}>Last Contact</th>
+                <th style={styles.tableHeaderCell}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pastDueClients.length > 0 ? (
+                pastDueClients.map((client) => {
+                  const daysOverdue = client.next_due_date ? 
+                    Math.floor((new Date() - new Date(client.next_due_date)) / (1000 * 60 * 60 * 24)) : 0;
+                  const amountDue = (client.total_balance || 0) - (client.paid_amount || 0);
+                  const recentEfforts = getClientRecentEfforts(client.id);
+                  const lastContact = recentEfforts[0];
+                  
+                  return (
+                    <tr key={client.id} style={styles.tableRow}>
+                      <td style={styles.tableCell}>
+                        <div style={styles.clientCell}>
+                          <div style={styles.clientAvatar}>
+                            <User style={{ width: '24px', height: '24px', color: '#dc2626' }} />
+                          </div>
+                          <div style={styles.clientInfo}>
+                            <div style={styles.clientName}>{client.name}</div>
+                            <div style={styles.clientEmail}>{client.email}</div>
+                            <div style={styles.clientEmail}>{client.phone}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={styles.tableCell}>
+                        <span style={{
+                          fontWeight: '600',
+                          color: daysOverdue > 7 ? '#dc2626' : 
+                                daysOverdue > 3 ? '#f59e0b' : '#059669'
+                        }}>
+                          {daysOverdue > 0 ? `${daysOverdue} days` : 'Due today'}
+                        </span>
+                      </td>
+                      <td style={styles.tableCell}>
+                        <span style={{ fontWeight: '600', color: '#dc2626' }}>
+                          ${amountDue.toLocaleString()}
+                        </span>
+                      </td>
+                      <td style={styles.tableCell}>
+                        {lastContact ? (
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              {lastContact.type} - {new Date(lastContact.sent_date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#9ca3af' }}>No contact yet</span>
+                        )}
+                      </td>
+                      <td style={styles.tableCell}>
+                        <div style={styles.actionButtons}>
+                          <button 
+                            onClick={() => {
+                              setSelectedCollectionClient(client);
+                              setCollectionType('SMS');
+                              setShowCollectionModal(true);
+                            }}
+                            style={styles.iconButton}
+                            title="Send SMS"
+                          >
+                            <MessageSquare style={{ width: '16px', height: '16px' }} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedCollectionClient(client);
+                              setCollectionType('EMAIL');
+                              setShowCollectionModal(true);
+                            }}
+                            style={styles.iconButton}
+                            title="Send Email"
+                          >
+                            <Mail style={{ width: '16px', height: '16px' }} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedCollectionClient(client);
+                              setCollectionType('CALL');
+                              setShowCollectionModal(true);
+                            }}
+                            style={styles.iconButton}
+                            title="Log Call"
+                          >
+                            <Phone style={{ width: '16px', height: '16px' }} />
+                          </button>
+                          <button 
+                            onClick={() => openClientProfile(client)} 
+                            style={styles.iconButton}
+                            title="View Profile"
+                          >
+                            <Eye style={{ width: '16px', height: '16px' }} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={5} style={{ ...styles.tableCell, textAlign: 'center', padding: '40px' }}>
+                    <div style={{ color: '#6b7280' }}>
+                      <TrendingUp style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.3 }} />
+                      <p>No past due accounts! Great job! 🎉</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Keeping other tabs the same for now
+   const IntegrationsTab = () => <div style={styles.chartCard}><h3>Integrations - Coming Soon</h3></div>;
 
   return (
     <div style={styles.container}>
