@@ -9,26 +9,45 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const App = () => {
   // Create isolated form components to prevent re-renders
-  const ClientForm = React.memo(({ formData, onChange, onSubmit, isEdit = false }) => {
-    const handleChange = useCallback((field, value) => {
-      onChange(field, value);
-    }, [onChange]);
-
-    const handleSubmit = useCallback((e) => {
+  // Create uncontrolled form components to fix typing issues
+  const UncontrolledClientForm = React.memo(({ initialData, onSubmit, isEdit = false }) => {
+    const formRef = React.useRef();
+    
+    const handleSubmit = useCallback(async (e) => {
       e.preventDefault();
-      onSubmit(e);
-    }, [onSubmit]);
+      const formData = new FormData(formRef.current);
+      
+      const clientData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        law_firm: formData.get('law_firm'),
+        total_balance: parseFloat(formData.get('total_balance')) || 0,
+        paid_amount: parseFloat(formData.get('paid_amount')) || 0,
+        next_due_date: formData.get('next_due_date'),
+        payment_plan: formData.get('payment_plan'),
+        status: formData.get('status'),
+        third_party_payor: formData.get('third_party_payor'),
+        retainer_signed: formData.get('retainer_signed') === 'on'
+      };
+      
+      if (isEdit) {
+        await updateClientUncontrolled(clientData);
+      } else {
+        await addClientUncontrolled(clientData);
+      }
+    }, [isEdit]);
 
     return (
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         <div style={styles.modalBody}>
           <div style={styles.formGrid}>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Full Name *</label>
               <input
+                name="name"
                 type="text"
-                value={formData.name || ''}
-                onChange={(e) => handleChange('name', e.target.value)}
+                defaultValue={initialData?.name || ''}
                 style={styles.formInput}
                 required
               />
@@ -37,9 +56,9 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Email Address</label>
               <input
+                name="email"
                 type="email"
-                value={formData.email || ''}
-                onChange={(e) => handleChange('email', e.target.value)}
+                defaultValue={initialData?.email || ''}
                 style={styles.formInput}
               />
             </div>
@@ -47,9 +66,9 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Phone Number</label>
               <input
+                name="phone"
                 type="tel"
-                value={formData.phone || ''}
-                onChange={(e) => handleChange('phone', e.target.value)}
+                defaultValue={initialData?.phone || ''}
                 style={styles.formInput}
                 placeholder="(555) 123-4567"
               />
@@ -58,9 +77,9 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Law Firm</label>
               <input
+                name="law_firm"
                 type="text"
-                value={formData.law_firm || ''}
-                onChange={(e) => handleChange('law_firm', e.target.value)}
+                defaultValue={initialData?.law_firm || ''}
                 style={styles.formInput}
               />
             </div>
@@ -68,10 +87,10 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Total Balance ($)</label>
               <input
+                name="total_balance"
                 type="number"
                 step="0.01"
-                value={formData.total_balance || ''}
-                onChange={(e) => handleChange('total_balance', e.target.value)}
+                defaultValue={initialData?.total_balance || ''}
                 style={styles.formInput}
                 placeholder="0.00"
               />
@@ -80,10 +99,10 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Amount Paid ($)</label>
               <input
+                name="paid_amount"
                 type="number"
                 step="0.01"
-                value={formData.paid_amount || ''}
-                onChange={(e) => handleChange('paid_amount', e.target.value)}
+                defaultValue={initialData?.paid_amount || ''}
                 style={styles.formInput}
                 placeholder="0.00"
               />
@@ -92,9 +111,9 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Next Due Date</label>
               <input
+                name="next_due_date"
                 type="date"
-                value={formData.next_due_date || ''}
-                onChange={(e) => handleChange('next_due_date', e.target.value)}
+                defaultValue={initialData?.next_due_date || ''}
                 style={styles.formInput}
               />
             </div>
@@ -102,9 +121,9 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Payment Plan</label>
               <input
+                name="payment_plan"
                 type="text"
-                value={formData.payment_plan || ''}
-                onChange={(e) => handleChange('payment_plan', e.target.value)}
+                defaultValue={initialData?.payment_plan || ''}
                 style={styles.formInput}
                 placeholder="Monthly - $500"
               />
@@ -113,8 +132,8 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Status</label>
               <select
-                value={formData.status || 'Active'}
-                onChange={(e) => handleChange('status', e.target.value)}
+                name="status"
+                defaultValue={initialData?.status || 'Active'}
                 style={styles.formSelect}
               >
                 <option value="Active">Active</option>
@@ -127,9 +146,9 @@ const App = () => {
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Third Party Payor</label>
               <input
+                name="third_party_payor"
                 type="text"
-                value={formData.third_party_payor || ''}
-                onChange={(e) => handleChange('third_party_payor', e.target.value)}
+                defaultValue={initialData?.third_party_payor || ''}
                 style={styles.formInput}
                 placeholder="Insurance Company, etc."
               />
@@ -138,9 +157,9 @@ const App = () => {
           
           <div style={styles.formCheckbox}>
             <input
+              name="retainer_signed"
               type="checkbox"
-              checked={formData.retainer_signed || false}
-              onChange={(e) => handleChange('retainer_signed', e.target.checked)}
+              defaultChecked={initialData?.retainer_signed || false}
             />
             <label style={styles.formLabel}>Retainer Agreement Signed</label>
           </div>
@@ -165,14 +184,34 @@ const App = () => {
     );
   });
 
-  const NotesSection = React.memo(({ noteValue, onNoteChange, onAddNote, notes }) => {
-    const handleChange = useCallback((e) => {
-      onNoteChange(e.target.value);
-    }, [onNoteChange]);
+  const UncontrolledNotesSection = React.memo(({ notes }) => {
+    const noteRef = React.useRef();
+    
+    const handleAddNote = useCallback(async () => {
+      const noteText = noteRef.current.value.trim();
+      if (!noteText || !selectedClient) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('client_notes')
+          .insert([{
+            client_id: selectedClient.id,
+            note: noteText,
+            user_id: user?.id,
+            created_at: new Date().toISOString()
+          }])
+          .select();
 
-    const handleAddNote = useCallback(() => {
-      onAddNote();
-    }, [onAddNote]);
+        if (error) throw error;
+        
+        setClientNotes(prev => [data[0], ...prev]);
+        noteRef.current.value = '';
+        await addNotification('Note added successfully', 'info');
+      } catch (error) {
+        console.error('Error adding note:', error);
+        await addNotification('Error adding note', 'alert');
+      }
+    }, [selectedClient, user]);
 
     return (
       <div>
@@ -183,15 +222,13 @@ const App = () => {
         {/* Add New Note */}
         <div style={{ marginBottom: '24px' }}>
           <textarea
-            value={noteValue || ''}
-            onChange={handleChange}
+            ref={noteRef}
             placeholder="Add a note about this client..."
             style={styles.noteInput}
           />
           <button 
             onClick={handleAddNote}
             style={styles.addNoteButton}
-            disabled={!noteValue?.trim()}
           >
             Add Note
           </button>
@@ -271,20 +308,6 @@ const App = () => {
   const [clientProfileTab, setClientProfileTab] = useState('overview');
   const [clientNotes, setClientNotes] = useState([]);
   const [clientPaymentHistory, setClientPaymentHistory] = useState([]);
-  const [newNote, setNewNote] = useState('');
-  const [clientForm, setClientForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    total_balance: '',
-    paid_amount: '',
-    next_due_date: '',
-    status: 'Active',
-    payment_plan: '',
-    law_firm: '',
-    retainer_signed: false,
-    third_party_payor: ''
-  });
 
   // Database Functions
   const fetchClients = async () => {
@@ -329,31 +352,6 @@ const App = () => {
       setClientPaymentHistory(data || []);
     } catch (error) {
       console.error('Error fetching payment history:', error);
-    }
-  };
-
-  const addClientNote = async () => {
-    if (!newNote.trim() || !selectedClient) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('client_notes')
-        .insert([{
-          client_id: selectedClient.id,
-          note: newNote.trim(),
-          user_id: user?.id,
-          created_at: new Date().toISOString()
-        }])
-        .select();
-
-      if (error) throw error;
-      
-      setClientNotes(prev => [data[0], ...prev]);
-      setNewNote('');
-      await addNotification('Note added successfully', 'info');
-    } catch (error) {
-      console.error('Error adding note:', error);
-      await addNotification('Error adding note', 'alert');
     }
   };
 
@@ -417,23 +415,21 @@ const App = () => {
     }
   };
 
-  const addClient = async (e) => {
-    e.preventDefault();
-    
+  const addClientUncontrolled = async (clientData) => {
     try {
       const newClient = {
-        name: clientForm.name,
-        email: clientForm.email,
-        phone: clientForm.phone,
-        total_balance: parseFloat(clientForm.total_balance) || 0,
-        paid_amount: parseFloat(clientForm.paid_amount) || 0,
-        next_due_date: clientForm.next_due_date,
-        status: clientForm.status,
-        payment_plan: clientForm.payment_plan,
+        name: clientData.name,
+        email: clientData.email,
+        phone: clientData.phone,
+        total_balance: clientData.total_balance,
+        paid_amount: clientData.paid_amount,
+        next_due_date: clientData.next_due_date,
+        status: clientData.status,
+        payment_plan: clientData.payment_plan,
         payment_status: 'Pending',
-        law_firm: clientForm.law_firm,
-        retainer_signed: clientForm.retainer_signed,
-        third_party_payor: clientForm.third_party_payor || null,
+        law_firm: clientData.law_firm,
+        retainer_signed: clientData.retainer_signed,
+        third_party_payor: clientData.third_party_payor || null,
         user_id: user?.id,
         created_at: new Date().toISOString()
       };
@@ -446,9 +442,8 @@ const App = () => {
       if (error) throw error;
 
       setClients(prev => [data[0], ...prev]);
-      await addNotification(`Client ${clientForm.name} added successfully`, 'info');
+      await addNotification(`Client ${clientData.name} added successfully`, 'info');
       
-      resetForm();
       setShowAddClientModal(false);
       
     } catch (error) {
@@ -457,22 +452,20 @@ const App = () => {
     }
   };
 
-  const updateClient = async (e) => {
-    e.preventDefault();
-    
+  const updateClientUncontrolled = async (clientData) => {
     try {
       const updatedClient = {
-        name: clientForm.name,
-        email: clientForm.email,
-        phone: clientForm.phone,
-        total_balance: parseFloat(clientForm.total_balance) || 0,
-        paid_amount: parseFloat(clientForm.paid_amount) || 0,
-        next_due_date: clientForm.next_due_date,
-        status: clientForm.status,
-        payment_plan: clientForm.payment_plan,
-        law_firm: clientForm.law_firm,
-        retainer_signed: clientForm.retainer_signed,
-        third_party_payor: clientForm.third_party_payor || null,
+        name: clientData.name,
+        email: clientData.email,
+        phone: clientData.phone,
+        total_balance: clientData.total_balance,
+        paid_amount: clientData.paid_amount,
+        next_due_date: clientData.next_due_date,
+        status: clientData.status,
+        payment_plan: clientData.payment_plan,
+        law_firm: clientData.law_firm,
+        retainer_signed: clientData.retainer_signed,
+        third_party_payor: clientData.third_party_payor || null,
         updated_at: new Date().toISOString()
       };
 
@@ -489,9 +482,8 @@ const App = () => {
         client.id === selectedClient.id ? data[0] : client
       ));
       
-      await addNotification(`Client ${clientForm.name} updated successfully`, 'info');
+      await addNotification(`Client ${clientData.name} updated successfully`, 'info');
       
-      resetForm();
       setShowEditClientModal(false);
       setSelectedClient(null);
       
@@ -526,19 +518,6 @@ const App = () => {
 
   const openEditModal = (client) => {
     setSelectedClient(client);
-    setClientForm({
-      name: client.name || '',
-      email: client.email || '',
-      phone: client.phone || '',
-      total_balance: client.total_balance || '',
-      paid_amount: client.paid_amount || '',
-      next_due_date: client.next_due_date || '',
-      status: client.status || 'Active',
-      payment_plan: client.payment_plan || '',
-      law_firm: client.law_firm || '',
-      retainer_signed: client.retainer_signed || false,
-      third_party_payor: client.third_party_payor || ''
-    });
     setShowEditClientModal(true);
   };
 
@@ -563,18 +542,7 @@ const App = () => {
     });
   };
 
-  // Optimized form handlers to prevent input issues
-  const handleClientFormChange = useCallback((field, value) => {
-    setClientForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
-
-  const handleNoteChange = useCallback((value) => {
-    setNewNote(value);
-  }, []);
-
+  // Optimized form handlers to prevent input issues  
   const handleLoginChange = useCallback((field, value) => {
     setLoginForm(prev => ({
       ...prev,
@@ -1552,10 +1520,7 @@ const App = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={styles.sectionTitle}>Client Management</h2>
         <button 
-          onClick={() => {
-            resetForm();
-            setShowAddClientModal(true);
-          }} 
+          onClick={() => setShowAddClientModal(true)} 
           style={styles.button}
         >
           <Plus style={{ width: '16px', height: '16px' }} />
@@ -1577,10 +1542,8 @@ const App = () => {
               <h2 style={styles.modalTitle}>Add New Client</h2>
             </div>
             
-            <ClientForm
-              formData={clientForm}
-              onChange={handleClientFormChange}
-              onSubmit={addClient}
+            <UncontrolledClientForm
+              initialData={{}}
               isEdit={false}
             />
           </div>
@@ -1601,10 +1564,8 @@ const App = () => {
               <h2 style={styles.modalTitle}>Edit Client</h2>
             </div>
             
-            <ClientForm
-              formData={clientForm}
-              onChange={handleClientFormChange}
-              onSubmit={updateClient}
+            <UncontrolledClientForm
+              initialData={selectedClient}
               isEdit={true}
             />
           </div>
@@ -1776,10 +1737,7 @@ const App = () => {
               
               {/* Notes Tab */}
               {clientProfileTab === 'notes' && (
-                <NotesSection
-                  noteValue={newNote}
-                  onNoteChange={handleNoteChange}
-                  onAddNote={addClientNote}
+                <UncontrolledNotesSection
                   notes={clientNotes}
                 />
               )}
