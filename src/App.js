@@ -53,6 +53,25 @@ const App = () => {
     </div>
   ));
 
+// ADD THIS DEBUG COMPONENT HERE:
+const DebugInput = () => {
+  const [testValue, setTestValue] = useState('');
+  
+  return (
+    <div style={{ position: 'fixed', top: '10px', right: '10px', background: 'white', padding: '10px', border: '1px solid black', zIndex: 9999 }}>
+      <label>Debug Input Test:</label>
+      <input 
+        value={testValue}
+        onChange={(e) => setTestValue(e.target.value)}
+        placeholder="Type here to test..."
+        style={{ marginLeft: '10px', padding: '5px' }}
+      />
+      <div>Value: "{testValue}"</div>
+    </div>
+  );
+};
+
+
   // Form options
   const statusOptions = [
     { value: 'Active', label: 'Active' },
@@ -2126,6 +2145,7 @@ const App = () => {
 
   return (
     <div style={styles.container}>
+      <DebugInput />
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
