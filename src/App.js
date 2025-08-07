@@ -542,23 +542,7 @@ const App = () => {
     setShowDeleteConfirm(true);
   };
 
-  const resetForm = () => {
-    setClientForm({
-      name: '',
-      email: '',
-      phone: '',
-      total_balance: '',
-      paid_amount: '',
-      next_due_date: '',
-      status: 'Active',
-      payment_plan: '',
-      law_firm: '',
-      retainer_signed: false,
-      third_party_payor: ''
-    });
-  };
-
-  const handleLoginChange = useCallback((field, value) => {
+   const handleLoginChange = useCallback((field, value) => {
     setLoginForm(prev => ({
       ...prev,
       [field]: value
