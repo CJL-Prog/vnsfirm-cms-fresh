@@ -196,7 +196,7 @@ const App = () => {
           .insert([{
             client_id: selectedClient.id,
             note: noteText,
-            user_id: user?.id,
+            created_by: user?.email,
             created_at: new Date().toISOString()
           }])
           .select();
@@ -241,6 +241,7 @@ const App = () => {
                 <div style={styles.noteText}>{note.note}</div>
                 <div style={styles.noteMeta}>
                   {new Date(note.created_at).toLocaleDateString()} at {new Date(note.created_at).toLocaleTimeString()}
+                  {note.created_by && <span> • by {note.created_by}</span>}
                 </div>
               </div>
             ))}
@@ -391,6 +392,7 @@ const App = () => {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(10);
       
@@ -437,7 +439,7 @@ const App = () => {
         law_firm: clientData.law_firm,
         retainer_signed: clientData.retainer_signed,
         third_party_payor: clientData.third_party_payor || null,
-        user_id: user?.id,
+        created_by: user?.email,
         created_at: new Date().toISOString()
       };
 
@@ -473,6 +475,7 @@ const App = () => {
         law_firm: clientData.law_firm,
         retainer_signed: clientData.retainer_signed,
         third_party_payor: clientData.third_party_payor || null,
+        modified_by: user?.email,
         updated_at: new Date().toISOString()
       };
 
@@ -562,7 +565,7 @@ const App = () => {
         message: `Payment reminder sent to ${client.name}`,
         sent_date: new Date().toISOString().split('T')[0],
         status: 'Sent',
-        user_id: user?.id
+        created_by: user?.email
       };
 
       const { data, error } = await supabase
@@ -591,7 +594,7 @@ const App = () => {
         message: `Email reminder sent to ${client.name}`,
         sent_date: new Date().toISOString().split('T')[0],
         status: 'Sent',
-        user_id: user?.id
+        created_by: user?.email
       };
 
       const { data, error } = await supabase
@@ -2131,6 +2134,7 @@ const App = () => {
               <h2 style={styles.profileTitle}>{selectedClient.name}</h2>
               <p style={styles.profileSubtitle}>
                 {selectedClient.law_firm} • {selectedClient.status}
+                {selectedClient.created_by && <span> • Added by {selectedClient.created_by}</span>}
               </p>
             </div>
             
@@ -2274,6 +2278,7 @@ const App = () => {
                             </div>
                             <div style={styles.historyDate}>
                               {new Date(effort.sent_date).toLocaleDateString()}
+                              {effort.created_by && <span> • by {effort.created_by}</span>}
                             </div>
                           </div>
                           <div style={{ 
