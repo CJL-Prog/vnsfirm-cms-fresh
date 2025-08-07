@@ -220,12 +220,6 @@ const App = () => {
   });
 
   // Form options
-  const statusOptions = [
-    { value: 'Active', label: 'Active' },
-    { value: 'Past Due', label: 'Past Due' },
-    { value: 'Paid in Full', label: 'Paid in Full' },
-    { value: 'Inactive', label: 'Inactive' }
-  ];
 
   // Form options
   const statusOptions = [
