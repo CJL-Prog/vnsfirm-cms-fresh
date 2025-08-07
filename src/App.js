@@ -816,6 +816,58 @@ const App = () => {
       }));
     }, []);
 
+    // LawPay Integration Functions
+    const testLawPayConnection = async () => {
+      setProfileLoading(true);
+      try {
+        console.log('Testing LawPay connection...');
+        
+        const { data, error } = await supabase.functions.invoke('lawpay-integration', {
+          body: { action: 'test_connection' }
+        });
+        
+        if (error) throw error;
+        
+        console.log('LawPay test result:', data);
+        alert('✅ LawPay Connection Successful!\n\n' + data.message);
+        
+      } catch (error) {
+        console.error('LawPay test error:', error);
+        alert('❌ LawPay Test Failed:\n\n' + error.message);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    const importLawPayData = async () => {
+      if (!confirm('This will import clients and transactions from LawPay sandbox. Continue?')) {
+        return;
+      }
+      
+      setProfileLoading(true);
+      try {
+        console.log('Starting LawPay data import...');
+        
+        const { data, error } = await supabase.functions.invoke('lawpay-integration', {
+          body: { action: 'import_data' }
+        });
+        
+        if (error) throw error;
+        
+        console.log('Import result:', data);
+        alert(`✅ Import Complete!\n\nClients: ${data.clients.imported} imported, ${data.clients.errors} errors\nTransactions: ${data.transactions.imported} imported, ${data.transactions.errors} errors`);
+        
+        // Refresh the clients list
+        await fetchClients();
+        
+      } catch (error) {
+        console.error('Import error:', error);
+        alert('❌ Import Failed:\n\n' + error.message);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
     const updatePassword = async (e) => {
       e.preventDefault();
       setPasswordLoading(true);
@@ -883,6 +935,50 @@ const App = () => {
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
           
+          {/* LawPay Integration */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>LawPay Integration</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={testLawPayConnection}
+                style={{
+                  ...styles.button,
+                  opacity: profileLoading ? 0.6 : 1,
+                  cursor: profileLoading ? 'not-allowed' : 'pointer',
+                  backgroundColor: '#059669'
+                }}
+                disabled={profileLoading}
+              >
+                {profileLoading ? 'Testing...' : '🧪 Test LawPay Connection'}
+              </button>
+              
+              <button 
+                onClick={importLawPayData}
+                style={{
+                  ...styles.button,
+                  opacity: profileLoading ? 0.6 : 1,
+                  cursor: profileLoading ? 'not-allowed' : 'pointer',
+                  backgroundColor: '#dc2626'
+                }}
+                disabled={profileLoading}
+              >
+                {profileLoading ? 'Importing...' : '📥 Import LawPay Data'}
+              </button>
+              
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#f0f9ff', 
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#0369a1'
+              }}>
+                <strong>Environment:</strong> Sandbox (Test Mode)<br/>
+                <strong>Status:</strong> Ready for testing
+              </div>
+            </div>
+          </div>
+
           {/* Profile Settings */}
           <div style={styles.chartCard}>
             <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Profile Information</h3>
