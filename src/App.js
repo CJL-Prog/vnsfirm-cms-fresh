@@ -299,6 +299,16 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   
+  // Auth screen state
+  const [authMode, setAuthMode] = useState('login'); // 'login', 'signup', 'forgot'
+  const [signupForm, setSignupForm] = useState({ 
+    email: '', 
+    password: '', 
+    confirmPassword: '', 
+    companyName: '',
+    fullName: ''
+  });
+  
   // Modal and form state
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showEditClientModal, setShowEditClientModal] = useState(false);
@@ -542,9 +552,15 @@ const App = () => {
     });
   };
 
-  // Optimized form handlers to prevent input issues  
   const handleLoginChange = useCallback((field, value) => {
     setLoginForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handleSignupChange = useCallback((field, value) => {
+    setSignupForm(prev => ({
       ...prev,
       [field]: value
     }));
@@ -634,6 +650,69 @@ const App = () => {
     }
   };
 
+  const signUp = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    
+    try {
+      // Validate passwords match
+      if (signupForm.password !== signupForm.confirmPassword) {
+        alert('Passwords do not match');
+        return;
+      }
+
+      if (signupForm.password.length < 6) {
+        alert('Password must be at least 6 characters long');
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email: signupForm.email,
+        password: signupForm.password,
+        options: {
+          data: {
+            full_name: signupForm.fullName,
+            company_name: signupForm.companyName,
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data.user) {
+        alert('Account created successfully! Please check your email to verify your account.');
+        setAuthMode('login');
+        setSignupForm({ email: '', password: '', confirmPassword: '', companyName: '', fullName: '' });
+      }
+    } catch (error) {
+      console.error('Error signing up:', error);
+      alert('Error creating account: ' + error.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const forgotPassword = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(loginForm.email, {
+        redirectTo: window.location.origin + '/reset-password',
+      });
+
+      if (error) throw error;
+      
+      alert('Password reset email sent! Please check your inbox.');
+      setAuthMode('login');
+    } catch (error) {
+      console.error('Error sending reset email:', error);
+      alert('Error sending reset email: ' + error.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -661,11 +740,41 @@ const App = () => {
       async (event, session) => {
         setUser(session?.user || null);
         setLoading(false);
+        
+        // Initialize user settings on first signup
+        if (event === 'SIGNED_UP' && session?.user) {
+          await initializeUserSettings(session.user);
+        }
       }
     );
 
     return () => subscription?.unsubscribe();
   }, []);
+
+  // Initialize user settings on signup
+  const initializeUserSettings = async (user) => {
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .insert([{
+          user_id: user.id,
+          company_name: user.user_metadata?.company_name || 'My Firm',
+          automation_enabled: true,
+          sms_day_before_enabled: true,
+          sms_due_date_enabled: true,
+          email_day3_enabled: true,
+          email_day5_enabled: true,
+          email_day7_enabled: true,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (error && error.code !== '23505') { // Ignore duplicate key errors
+        console.error('Error initializing user settings:', error);
+      }
+    } catch (error) {
+      console.error('Error initializing user settings:', error);
+    }
+  };
 
   // Fetch data when user is authenticated
   useEffect(() => {
@@ -750,6 +859,28 @@ const App = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px'
+    },
+    authLinks: {
+      textAlign: 'center',
+      marginTop: '24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    linkButton: {
+      backgroundColor: 'transparent',
+      border: 'none',
+      color: '#dc2626',
+      fontSize: '14px',
+      cursor: 'pointer',
+      textDecoration: 'underline'
+    },
+    forgotText: {
+      fontSize: '14px',
+      color: '#6b7280',
+      textAlign: 'center',
+      marginBottom: '16px',
+      lineHeight: '1.5'
     },
     header: {
       backgroundColor: '#fff',
@@ -1375,7 +1506,13 @@ const App = () => {
   if (loading) {
     return (
       <div style={styles.loginContainer}>
-        <div style={{ textAlign: 'center' }}>Loading...</div>
+        <div style={styles.loginCard}>
+          <h1 style={styles.loginTitle}>VNS Firm</h1>
+          <p style={styles.loginSubtitle}>Client Management System</p>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '16px', color: '#6b7280' }}>Loading...</div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1387,44 +1524,193 @@ const App = () => {
           <h1 style={styles.loginTitle}>VNS Firm</h1>
           <p style={styles.loginSubtitle}>Client Management System</p>
           
-          <form onSubmit={signIn} style={styles.loginForm}>
-            <input
-              key="login-email"
-              type="email"
-              placeholder="Email"
-              value={loginForm.email}
-              onChange={(e) => handleLoginChange('email', e.target.value)}
-              style={styles.loginInput}
-              required
-            />
-            <input
-              key="login-password"
-              type="password"
-              placeholder="Password"
-              value={loginForm.password}
-              onChange={(e) => handleLoginChange('password', e.target.value)}
-              style={styles.loginInput}
-              required
-            />
-            <button 
-              type="submit" 
-              style={{
-                ...styles.loginButton,
-                opacity: authLoading ? 0.6 : 1,
-                cursor: authLoading ? 'not-allowed' : 'pointer'
-              }}
-              disabled={authLoading}
-            >
-              {authLoading ? (
-                'Signing in...'
-              ) : (
-                <>
-                  <Lock style={{ width: '16px', height: '16px' }} />
-                  Sign In
-                </>
-              )}
-            </button>
-          </form>
+          {/* Login Form */}
+          {authMode === 'login' && (
+            <>
+              <form onSubmit={signIn} style={styles.loginForm}>
+                <input
+                  key="login-email"
+                  type="email"
+                  placeholder="Email"
+                  value={loginForm.email}
+                  onChange={(e) => handleLoginChange('email', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                />
+                <input
+                  key="login-password"
+                  type="password"
+                  placeholder="Password"
+                  value={loginForm.password}
+                  onChange={(e) => handleLoginChange('password', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                />
+                <button 
+                  type="submit" 
+                  style={{
+                    ...styles.loginButton,
+                    opacity: authLoading ? 0.6 : 1,
+                    cursor: authLoading ? 'not-allowed' : 'pointer'
+                  }}
+                  disabled={authLoading}
+                >
+                  {authLoading ? (
+                    'Signing in...'
+                  ) : (
+                    <>
+                      <Lock style={{ width: '16px', height: '16px' }} />
+                      Sign In
+                    </>
+                  )}
+                </button>
+              </form>
+              
+              <div style={styles.authLinks}>
+                <button 
+                  onClick={() => setAuthMode('forgot')}
+                  style={styles.linkButton}
+                >
+                  Forgot Password?
+                </button>
+                <span style={{ color: '#6b7280', margin: '0 8px' }}>•</span>
+                <button 
+                  onClick={() => setAuthMode('signup')}
+                  style={styles.linkButton}
+                >
+                  Create Account
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Signup Form */}
+          {authMode === 'signup' && (
+            <>
+              <form onSubmit={signUp} style={styles.loginForm}>
+                <input
+                  key="signup-fullname"
+                  type="text"
+                  placeholder="Full Name"
+                  value={signupForm.fullName}
+                  onChange={(e) => handleSignupChange('fullName', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                />
+                <input
+                  key="signup-company"
+                  type="text"
+                  placeholder="Company/Firm Name"
+                  value={signupForm.companyName}
+                  onChange={(e) => handleSignupChange('companyName', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                />
+                <input
+                  key="signup-email"
+                  type="email"
+                  placeholder="Email"
+                  value={signupForm.email}
+                  onChange={(e) => handleSignupChange('email', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                />
+                <input
+                  key="signup-password"
+                  type="password"
+                  placeholder="Password (min 6 characters)"
+                  value={signupForm.password}
+                  onChange={(e) => handleSignupChange('password', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                  minLength={6}
+                />
+                <input
+                  key="signup-confirm"
+                  type="password"
+                  placeholder="Confirm Password"
+                  value={signupForm.confirmPassword}
+                  onChange={(e) => handleSignupChange('confirmPassword', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                />
+                <button 
+                  type="submit" 
+                  style={{
+                    ...styles.loginButton,
+                    opacity: authLoading ? 0.6 : 1,
+                    cursor: authLoading ? 'not-allowed' : 'pointer'
+                  }}
+                  disabled={authLoading}
+                >
+                  {authLoading ? (
+                    'Creating Account...'
+                  ) : (
+                    <>
+                      <User style={{ width: '16px', height: '16px' }} />
+                      Create Account
+                    </>
+                  )}
+                </button>
+              </form>
+              
+              <div style={styles.authLinks}>
+                <button 
+                  onClick={() => setAuthMode('login')}
+                  style={styles.linkButton}
+                >
+                  ← Back to Sign In
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Forgot Password Form */}
+          {authMode === 'forgot' && (
+            <>
+              <form onSubmit={forgotPassword} style={styles.loginForm}>
+                <p style={styles.forgotText}>
+                  Enter your email address and we'll send you a link to reset your password.
+                </p>
+                <input
+                  key="forgot-email"
+                  type="email"
+                  placeholder="Email"
+                  value={loginForm.email}
+                  onChange={(e) => handleLoginChange('email', e.target.value)}
+                  style={styles.loginInput}
+                  required
+                />
+                <button 
+                  type="submit" 
+                  style={{
+                    ...styles.loginButton,
+                    opacity: authLoading ? 0.6 : 1,
+                    cursor: authLoading ? 'not-allowed' : 'pointer'
+                  }}
+                  disabled={authLoading}
+                >
+                  {authLoading ? (
+                    'Sending Reset Email...'
+                  ) : (
+                    <>
+                      <Mail style={{ width: '16px', height: '16px' }} />
+                      Send Reset Email
+                    </>
+                  )}
+                </button>
+              </form>
+              
+              <div style={styles.authLinks}>
+                <button 
+                  onClick={() => setAuthMode('login')}
+                  style={styles.linkButton}
+                >
+                  ← Back to Sign In
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -1914,7 +2200,221 @@ const App = () => {
   // Keeping other tabs the same for now - Collections, Integrations, Settings
   const CollectionsTab = () => <div style={styles.chartCard}><h3>Collections - Coming Soon</h3></div>;
   const IntegrationsTab = () => <div style={styles.chartCard}><h3>Integrations - Coming Soon</h3></div>;
-  const SettingsTab = () => <div style={styles.chartCard}><h3>Settings - Coming Soon</h3></div>;
+  
+  const SettingsTab = () => {
+    const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [profileForm, setProfileForm] = useState({
+      fullName: user?.user_metadata?.full_name || '',
+      companyName: user?.user_metadata?.company_name || ''
+    });
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [profileLoading, setProfileLoading] = useState(false);
+
+    const updatePassword = async (e) => {
+      e.preventDefault();
+      setPasswordLoading(true);
+
+      try {
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+          alert('New passwords do not match');
+          return;
+        }
+
+        if (passwordForm.newPassword.length < 6) {
+          alert('Password must be at least 6 characters long');
+          return;
+        }
+
+        const { error } = await supabase.auth.updateUser({
+          password: passwordForm.newPassword
+        });
+
+        if (error) throw error;
+
+        alert('Password updated successfully!');
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } catch (error) {
+        console.error('Error updating password:', error);
+        alert('Error updating password: ' + error.message);
+      } finally {
+        setPasswordLoading(false);
+      }
+    };
+
+    const updateProfile = async (e) => {
+      e.preventDefault();
+      setProfileLoading(true);
+
+      try {
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            full_name: profileForm.fullName,
+            company_name: profileForm.companyName,
+          }
+        });
+
+        if (error) throw error;
+
+        alert('Profile updated successfully!');
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        alert('Error updating profile: ' + error.message);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <h2 style={styles.sectionTitle}>Account Settings</h2>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+          
+          {/* Profile Settings */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Profile Information</h3>
+            <form onSubmit={updateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Full Name</label>
+                <input
+                  type="text"
+                  value={profileForm.fullName}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, fullName: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Company/Firm Name</label>
+                <input
+                  type="text"
+                  value={profileForm.companyName}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, companyName: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Email Address</label>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  style={{ ...styles.formInput, backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                  disabled
+                />
+                <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                  Email cannot be changed. Contact support if needed.
+                </small>
+              </div>
+              
+              <button 
+                type="submit" 
+                style={{
+                  ...styles.button,
+                  opacity: profileLoading ? 0.6 : 1,
+                  cursor: profileLoading ? 'not-allowed' : 'pointer'
+                }}
+                disabled={profileLoading}
+              >
+                {profileLoading ? 'Updating...' : 'Update Profile'}
+              </button>
+            </form>
+          </div>
+
+          {/* Password Settings */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Change Password</h3>
+            <form onSubmit={updatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>New Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter new password (min 6 characters)"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                  minLength={6}
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Confirm New Password</label>
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  style={styles.formInput}
+                  required
+                />
+              </div>
+              
+              <button 
+                type="submit" 
+                style={{
+                  ...styles.button,
+                  opacity: passwordLoading ? 0.6 : 1,
+                  cursor: passwordLoading ? 'not-allowed' : 'pointer'
+                }}
+                disabled={passwordLoading}
+              >
+                {passwordLoading ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          </div>
+
+          {/* Account Info */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Account Information</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                <span style={{ fontWeight: '500' }}>Account Created:</span>
+                <span>{new Date(user?.created_at).toLocaleDateString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                <span style={{ fontWeight: '500' }}>Last Sign In:</span>
+                <span>{user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                <span style={{ fontWeight: '500' }}>Email Verified:</span>
+                <span style={{ color: user?.email_confirmed_at ? '#059669' : '#ef4444' }}>
+                  {user?.email_confirmed_at ? '✅ Yes' : '❌ No'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px', color: '#ef4444' }}>Danger Zone</h3>
+            <div style={{ padding: '16px', border: '1px solid #fee2e2', borderRadius: '8px', backgroundColor: '#fef2f2' }}>
+              <h4 style={{ color: '#dc2626', margin: '0 0 8px 0' }}>Delete Account</h4>
+              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
+                Once you delete your account, there is no going back. All your data will be permanently deleted.
+              </p>
+              <button 
+                onClick={() => alert('Account deletion feature coming soon. Contact support for assistance.')}
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: '#fff',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={styles.container}>
@@ -1939,7 +2439,7 @@ const App = () => {
                 <User style={{ width: '20px', height: '20px', color: '#dc2626' }} />
               </div>
               <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                {user?.email?.split('@')[0] || 'User'}
+                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
               </span>
               <button onClick={signOut} style={{ ...styles.bellButton, color: '#9ca3af' }}>
                 <LogOut style={{ width: '20px', height: '20px' }} />
