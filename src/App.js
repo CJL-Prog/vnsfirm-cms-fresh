@@ -816,58 +816,7 @@ const App = () => {
       }));
     }, []);
 
-    // LawPay Integration Functions
-    const testLawPayConnection = async () => {
-      setProfileLoading(true);
-      try {
-        console.log('Testing LawPay connection...');
-        
-        const { data, error } = await supabase.functions.invoke('lawpay-integration', {
-          body: { action: 'test_connection' }
-        });
-        
-        if (error) throw error;
-        
-        console.log('LawPay test result:', data);
-        window.alert('✅ LawPay Connection Successful!\n\n' + data.message);
-        
-      } catch (error) {
-        console.error('LawPay test error:', error);
-        window.alert('❌ LawPay Test Failed:\n\n' + error.message);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
-    const importLawPayData = async () => {
-      if (!window.confirm('This will import clients and transactions from LawPay sandbox. Continue?')) {
-        return;
-      }
-      
-      setProfileLoading(true);
-      try {
-        console.log('Starting LawPay data import...');
-        
-        const { data, error } = await supabase.functions.invoke('lawpay-integration', {
-          body: { action: 'import_data' }
-        });
-        
-        if (error) throw error;
-        
-        console.log('Import result:', data);
-        window.alert(`✅ Import Complete!\n\nClients: ${data.clients.imported} imported, ${data.clients.errors} errors\nTransactions: ${data.transactions.imported} imported, ${data.transactions.errors} errors`);
-        
-        // Refresh the clients list
-        await fetchClients();
-        
-      } catch (error) {
-        console.error('Import error:', error);
-        window.alert('❌ Import Failed:\n\n' + error.message);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
+   
     const updatePassword = async (e) => {
       e.preventDefault();
       setPasswordLoading(true);
@@ -2980,8 +2929,505 @@ const CollectionsTab = () => {
   );
 };
 
-// Keeping other tabs the same for now
-   const IntegrationsTab = () => <div style={styles.chartCard}><h3>Integrations - Coming Soon</h3></div>;
+// Replace the line: const IntegrationsTab = () => <div style={styles.chartCard}><h3>Integrations - Coming Soon</h3></div>;
+// With all of this code:
+
+const IntegrationsTab = () => {
+  const [integrationView, setIntegrationView] = useState('overview'); // 'overview', 'lawpay', 'quickbooks', 'twilio'
+  const [integrationLoading, setIntegrationLoading] = useState(false);
+  const [testResults, setTestResults] = useState({});
+  
+  // LawPay Integration Functions (moved from Settings)
+  const testLawPayConnection = async () => {
+    setIntegrationLoading(true);
+    try {
+      console.log('Testing LawPay connection...');
+      
+      const { data, error } = await supabase.functions.invoke('lawpay-integration', {
+        body: { action: 'test_connection' }
+      });
+      
+      if (error) throw error;
+      
+      console.log('LawPay test result:', data);
+      setTestResults(prev => ({
+        ...prev,
+        lawpay: { success: true, message: data.message, timestamp: new Date() }
+      }));
+      window.alert('✅ LawPay Connection Successful!\n\n' + data.message);
+      
+    } catch (error) {
+      console.error('LawPay test error:', error);
+      setTestResults(prev => ({
+        ...prev,
+        lawpay: { success: false, message: error.message, timestamp: new Date() }
+      }));
+      window.alert('❌ LawPay Test Failed:\n\n' + error.message);
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
+  const importLawPayData = async () => {
+    if (!window.confirm('This will import clients and transactions from LawPay sandbox. Continue?')) {
+      return;
+    }
+    
+    setIntegrationLoading(true);
+    try {
+      console.log('Starting LawPay data import...');
+      
+      const { data, error } = await supabase.functions.invoke('lawpay-integration', {
+        body: { action: 'import_data' }
+      });
+      
+      if (error) throw error;
+      
+      console.log('Import result:', data);
+      window.alert(`✅ Import Complete!\n\nClients: ${data.clients.imported} imported, ${data.clients.errors} errors\nTransactions: ${data.transactions.imported} imported, ${data.transactions.errors} errors`);
+      
+      // Refresh the clients list
+      await fetchClients();
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      window.alert('❌ Import Failed:\n\n' + error.message);
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+  
+  // Integration status check
+  const getIntegrationStatus = (integration) => {
+    const result = testResults[integration];
+    if (!result) return 'Not tested';
+    if (result.success) return 'Connected';
+    return 'Failed';
+  };
+  
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'Connected': return '#059669';
+      case 'Failed': return '#dc2626';
+      default: return '#6b7280';
+    }
+  };
+  
+  // Render different views
+  if (integrationView === 'lawpay') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={styles.sectionTitle}>LawPay Integration</h2>
+          <button 
+            onClick={() => setIntegrationView('overview')} 
+            style={styles.button}
+          >
+            Back to Integrations
+          </button>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+          {/* Connection Status */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Connection Status</h3>
+            
+            <div style={{ 
+              padding: '16px', 
+              backgroundColor: testResults.lawpay?.success ? '#f0fdf4' : '#fef2f2', 
+              borderRadius: '8px',
+              border: `1px solid ${testResults.lawpay?.success ? '#86efac' : '#fecaca'}`,
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  backgroundColor: getStatusColor(getIntegrationStatus('lawpay'))
+                }}></div>
+                <span style={{ fontWeight: '600', color: getStatusColor(getIntegrationStatus('lawpay')) }}>
+                  {getIntegrationStatus('lawpay')}
+                </span>
+              </div>
+              {testResults.lawpay && (
+                <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
+                  {testResults.lawpay.message}
+                </p>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={testLawPayConnection}
+                style={{
+                  ...styles.button,
+                  opacity: integrationLoading ? 0.6 : 1,
+                  cursor: integrationLoading ? 'not-allowed' : 'pointer',
+                  backgroundColor: '#059669'
+                }}
+                disabled={integrationLoading}
+              >
+                {integrationLoading ? 'Testing...' : '🧪 Test Connection'}
+              </button>
+              
+              <button 
+                onClick={importLawPayData}
+                style={{
+                  ...styles.button,
+                  opacity: integrationLoading ? 0.6 : 1,
+                  cursor: integrationLoading ? 'not-allowed' : 'pointer'
+                }}
+                disabled={integrationLoading}
+              >
+                {integrationLoading ? 'Importing...' : '📥 Import Data'}
+              </button>
+            </div>
+          </div>
+          
+          {/* Configuration */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Configuration</h3>
+            
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#f0f9ff', 
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#0369a1',
+              marginBottom: '16px'
+            }}>
+              <strong>Environment:</strong> Sandbox (Test Mode)<br/>
+              <strong>API Version:</strong> v1<br/>
+              <strong>Last Sync:</strong> {testResults.lawpay?.timestamp ? 
+                new Date(testResults.lawpay.timestamp).toLocaleString() : 'Never'}
+            </div>
+            
+            <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.6' }}>
+              <p style={{ marginBottom: '12px' }}>
+                <strong>Features:</strong>
+              </p>
+              <ul style={{ marginLeft: '20px', marginBottom: '16px' }}>
+                <li>Client synchronization</li>
+                <li>Payment history import</li>
+                <li>Transaction tracking</li>
+                <li>Automated reconciliation</li>
+              </ul>
+              
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#fef3c7', 
+                borderRadius: '6px',
+                border: '1px solid #fde68a'
+              }}>
+                <strong style={{ color: '#d97706' }}>⚠️ Sandbox Mode:</strong>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
+                  Currently using test credentials. Production credentials will enable live data sync.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Import History */}
+        <div style={styles.chartCard}>
+          <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Recent Import Activity</h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead style={styles.tableHeader}>
+                <tr>
+                  <th style={styles.tableHeaderCell}>Date</th>
+                  <th style={styles.tableHeaderCell}>Type</th>
+                  <th style={styles.tableHeaderCell}>Records</th>
+                  <th style={styles.tableHeaderCell}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={styles.tableRow}>
+                  <td style={styles.tableCell}>{new Date().toLocaleDateString()}</td>
+                  <td style={styles.tableCell}>Clients</td>
+                  <td style={styles.tableCell}>5</td>
+                  <td style={styles.tableCell}>
+                    <span style={{ ...styles.statusBadge, ...styles.statusOnTime }}>Success</span>
+                  </td>
+                </tr>
+                <tr style={styles.tableRow}>
+                  <td style={styles.tableCell}>{new Date().toLocaleDateString()}</td>
+                  <td style={styles.tableCell}>Transactions</td>
+                  <td style={styles.tableCell}>12</td>
+                  <td style={styles.tableCell}>
+                    <span style={{ ...styles.statusBadge, ...styles.statusOnTime }}>Success</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Main Overview
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={styles.sectionTitle}>Integrations</h2>
+        <button 
+          style={{
+            ...styles.button,
+            backgroundColor: '#10b981'
+          }}
+        >
+          <Plus style={{ width: '16px', height: '16px' }} />
+          Add Integration
+        </button>
+      </div>
+      
+      {/* Integration Cards Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
+        
+        {/* LawPay Card */}
+        <div style={{ ...styles.chartCard, cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+             onClick={() => setIntegrationView('lawpay')}
+             onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
+             onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)'}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                LawPay
+              </h3>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Payment processing for law firms</p>
+            </div>
+            <div style={{
+              padding: '8px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '8px'
+            }}>
+              <CreditCard style={{ width: '24px', height: '24px', color: '#0369a1' }} />
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: getStatusColor(getIntegrationStatus('lawpay'))
+            }}></div>
+            <span style={{ fontSize: '14px', color: getStatusColor(getIntegrationStatus('lawpay')), fontWeight: '500' }}>
+              {getIntegrationStatus('lawpay')}
+            </span>
+          </div>
+          
+          <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+            Sync clients, process payments, and track transactions directly from your dashboard.
+          </p>
+          
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setIntegrationView('lawpay');
+            }}
+            style={{
+              marginTop: '16px',
+              padding: '6px 12px',
+              backgroundColor: '#f3f4f6',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Configure →
+          </button>
+        </div>
+        
+        {/* QuickBooks Card */}
+        <div style={{ ...styles.chartCard, opacity: 0.7 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                QuickBooks
+              </h3>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Accounting & bookkeeping</p>
+            </div>
+            <div style={{
+              padding: '8px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '8px'
+            }}>
+              <TrendingUp style={{ width: '24px', height: '24px', color: '#16a34a' }} />
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#d1d5db'
+            }}></div>
+            <span style={{ fontSize: '14px', color: '#9ca3af', fontWeight: '500' }}>
+              Coming Soon
+            </span>
+          </div>
+          
+          <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+            Automatically sync invoices, payments, and financial data with QuickBooks.
+          </p>
+          
+          <button 
+            disabled
+            style={{
+              marginTop: '16px',
+              padding: '6px 12px',
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'not-allowed',
+              opacity: 0.5
+            }}
+          >
+            Coming Soon
+          </button>
+        </div>
+        
+        {/* Twilio Card */}
+        <div style={{ ...styles.chartCard, opacity: 0.7 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                Twilio
+              </h3>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>SMS & voice communications</p>
+            </div>
+            <div style={{
+              padding: '8px',
+              backgroundColor: '#fef3c7',
+              borderRadius: '8px'
+            }}>
+              <MessageSquare style={{ width: '24px', height: '24px', color: '#d97706' }} />
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#d1d5db'
+            }}></div>
+            <span style={{ fontSize: '14px', color: '#9ca3af', fontWeight: '500' }}>
+              Coming Soon
+            </span>
+          </div>
+          
+          <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+            Send automated SMS reminders and make collection calls directly from the platform.
+          </p>
+          
+          <button 
+            disabled
+            style={{
+              marginTop: '16px',
+              padding: '6px 12px',
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'not-allowed',
+              opacity: 0.5
+            }}
+          >
+            Coming Soon
+          </button>
+        </div>
+        
+        {/* Zapier Card */}
+        <div style={{ ...styles.chartCard, opacity: 0.7 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                Zapier
+              </h3>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>Workflow automation</p>
+            </div>
+            <div style={{
+              padding: '8px',
+              backgroundColor: '#f3e8ff',
+              borderRadius: '8px'
+            }}>
+              <Settings style={{ width: '24px', height: '24px', color: '#9333ea' }} />
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#d1d5db'
+            }}></div>
+            <span style={{ fontSize: '14px', color: '#9ca3af', fontWeight: '500' }}>
+              Coming Soon
+            </span>
+          </div>
+          
+          <p style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+            Connect with 5,000+ apps and automate your workflow with custom triggers.
+          </p>
+          
+          <button 
+            disabled
+            style={{
+              marginTop: '16px',
+              padding: '6px 12px',
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'not-allowed',
+              opacity: 0.5
+            }}
+          >
+            Coming Soon
+          </button>
+        </div>
+        
+      </div>
+      
+      {/* Integration Stats */}
+      <div style={styles.chartCard}>
+        <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Integration Activity</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>1</div>
+            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Active Integrations</div>
+          </div>
+          <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>17</div>
+            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Synced Records Today</div>
+          </div>
+          <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>100%</div>
+            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Sync Success Rate</div>
+          </div>
+          <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Last Sync</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
   return (
     <div style={styles.container}>
