@@ -8,69 +8,224 @@ const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_AN
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const App = () => {
-  // Create a stable FormInput component to prevent re-renders
-  const FormInput = React.memo(({ label, type = "text", value, onChange, placeholder, required, ...props }) => (
-    <div style={styles.formGroup}>
-      <label style={styles.formLabel}>{label}</label>
-      <input
-        type={type}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        style={styles.formInput}
-        placeholder={placeholder}
-        required={required}
-        {...props}
-      />
-    </div>
-  ));
+  // Create isolated form components to prevent re-renders
+  const ClientForm = React.memo(({ formData, onChange, onSubmit, isEdit = false }) => {
+    const handleChange = useCallback((field, value) => {
+      onChange(field, value);
+    }, [onChange]);
 
-  const FormSelect = React.memo(({ label, value, onChange, options, ...props }) => (
-    <div style={styles.formGroup}>
-      <label style={styles.formLabel}>{label}</label>
-      <select
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        style={styles.formSelect}
-        {...props}
-      >
-        {options.map(option => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
-      </select>
-    </div>
-  ));
+    const handleSubmit = useCallback((e) => {
+      e.preventDefault();
+      onSubmit(e);
+    }, [onSubmit]);
 
-  const FormTextarea = React.memo(({ label, value, onChange, placeholder, ...props }) => (
-    <div style={{ marginBottom: '24px' }}>
-      {label && <label style={styles.formLabel}>{label}</label>}
-      <textarea
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={styles.noteInput}
-        {...props}
-      />
-    </div>
-  ));
+    return (
+      <form onSubmit={handleSubmit}>
+        <div style={styles.modalBody}>
+          <div style={styles.formGrid}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Full Name *</label>
+              <input
+                type="text"
+                value={formData.name || ''}
+                onChange={(e) => handleChange('name', e.target.value)}
+                style={styles.formInput}
+                required
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Email Address</label>
+              <input
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => handleChange('email', e.target.value)}
+                style={styles.formInput}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Phone Number</label>
+              <input
+                type="tel"
+                value={formData.phone || ''}
+                onChange={(e) => handleChange('phone', e.target.value)}
+                style={styles.formInput}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Law Firm</label>
+              <input
+                type="text"
+                value={formData.law_firm || ''}
+                onChange={(e) => handleChange('law_firm', e.target.value)}
+                style={styles.formInput}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Total Balance ($)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.total_balance || ''}
+                onChange={(e) => handleChange('total_balance', e.target.value)}
+                style={styles.formInput}
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Amount Paid ($)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.paid_amount || ''}
+                onChange={(e) => handleChange('paid_amount', e.target.value)}
+                style={styles.formInput}
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Next Due Date</label>
+              <input
+                type="date"
+                value={formData.next_due_date || ''}
+                onChange={(e) => handleChange('next_due_date', e.target.value)}
+                style={styles.formInput}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Payment Plan</label>
+              <input
+                type="text"
+                value={formData.payment_plan || ''}
+                onChange={(e) => handleChange('payment_plan', e.target.value)}
+                style={styles.formInput}
+                placeholder="Monthly - $500"
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Status</label>
+              <select
+                value={formData.status || 'Active'}
+                onChange={(e) => handleChange('status', e.target.value)}
+                style={styles.formSelect}
+              >
+                <option value="Active">Active</option>
+                <option value="Past Due">Past Due</option>
+                <option value="Paid in Full">Paid in Full</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Third Party Payor</label>
+              <input
+                type="text"
+                value={formData.third_party_payor || ''}
+                onChange={(e) => handleChange('third_party_payor', e.target.value)}
+                style={styles.formInput}
+                placeholder="Insurance Company, etc."
+              />
+            </div>
+          </div>
+          
+          <div style={styles.formCheckbox}>
+            <input
+              type="checkbox"
+              checked={formData.retainer_signed || false}
+              onChange={(e) => handleChange('retainer_signed', e.target.checked)}
+            />
+            <label style={styles.formLabel}>Retainer Agreement Signed</label>
+          </div>
+        </div>
+        
+        <div style={styles.modalFooter}>
+          <button
+            type="button"
+            onClick={() => isEdit ? setShowEditClientModal(false) : setShowAddClientModal(false)}
+            style={styles.cancelButton}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            style={styles.button}
+          >
+            {isEdit ? 'Save Changes' : 'Add Client'}
+          </button>
+        </div>
+      </form>
+    );
+  });
 
-// ADD THIS DEBUG COMPONENT HERE:
-const DebugInput = () => {
-  const [testValue, setTestValue] = useState('');
-  
-  return (
-    <div style={{ position: 'fixed', top: '10px', right: '10px', background: 'white', padding: '10px', border: '1px solid black', zIndex: 9999 }}>
-      <label>Debug Input Test:</label>
-      <input 
-        value={testValue}
-        onChange={(e) => setTestValue(e.target.value)}
-        placeholder="Type here to test..."
-        style={{ marginLeft: '10px', padding: '5px' }}
-      />
-      <div>Value: "{testValue}"</div>
-    </div>
-  );
-};
+  const NotesSection = React.memo(({ noteValue, onNoteChange, onAddNote, notes }) => {
+    const handleChange = useCallback((e) => {
+      onNoteChange(e.target.value);
+    }, [onNoteChange]);
 
+    const handleAddNote = useCallback(() => {
+      onAddNote();
+    }, [onAddNote]);
+
+    return (
+      <div>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
+          Account Notes
+        </h3>
+        
+        {/* Add New Note */}
+        <div style={{ marginBottom: '24px' }}>
+          <textarea
+            value={noteValue || ''}
+            onChange={handleChange}
+            placeholder="Add a note about this client..."
+            style={styles.noteInput}
+          />
+          <button 
+            onClick={handleAddNote}
+            style={styles.addNoteButton}
+            disabled={!noteValue?.trim()}
+          >
+            Add Note
+          </button>
+        </div>
+        
+        {/* Notes List */}
+        {notes.length > 0 ? (
+          <div>
+            {notes.map((note) => (
+              <div key={note.id} style={styles.noteItem}>
+                <div style={styles.noteText}>{note.note}</div>
+                <div style={styles.noteMeta}>
+                  {new Date(note.created_at).toLocaleDateString()} at {new Date(note.created_at).toLocaleTimeString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+            <FileText style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.3 }} />
+            <p>No notes available</p>
+          </div>
+        )}
+      </div>
+    );
+  });
+
+  // Form options
+  const statusOptions = [
+    { value: 'Active', label: 'Active' },
+    { value: 'Past Due', label: 'Past Due' },
+    { value: 'Paid in Full', label: 'Paid in Full' },
+    { value: 'Inactive', label: 'Inactive' }
+  ];
 
   // Form options
   const statusOptions = [
@@ -415,17 +570,10 @@ const DebugInput = () => {
   };
 
   // Optimized form handlers to prevent input issues
-  const handleInputChange = useCallback((field, value) => {
+  const handleClientFormChange = useCallback((field, value) => {
     setClientForm(prev => ({
       ...prev,
       [field]: value
-    }));
-  }, []);
-
-  const handleCheckboxChange = useCallback((field, checked) => {
-    setClientForm(prev => ({
-      ...prev,
-      [field]: checked
     }));
   }, []);
 
@@ -1435,160 +1583,12 @@ const DebugInput = () => {
               <h2 style={styles.modalTitle}>Add New Client</h2>
             </div>
             
-            <form onSubmit={addClient}>
-              <div style={styles.modalBody}>
-                <div style={styles.formGrid}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Full Name *</label>
-                    <input
-                      key="add-name"
-                      type="text"
-                      value={clientForm.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      style={styles.formInput}
-                      required
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Email Address</label>
-                    <input
-                      key="add-email"
-                      type="email"
-                      value={clientForm.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Phone Number</label>
-                    <input
-                      key="add-phone"
-                      type="tel"
-                      value={clientForm.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Law Firm</label>
-                    <input
-                      key="add-lawfirm"
-                      type="text"
-                      value={clientForm.law_firm}
-                      onChange={(e) => handleInputChange('law_firm', e.target.value)}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Total Balance ($)</label>
-                    <input
-                      key="add-balance"
-                      type="number"
-                      step="0.01"
-                      value={clientForm.total_balance}
-                      onChange={(e) => handleInputChange('total_balance', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Amount Paid ($)</label>
-                    <input
-                      key="add-paid"
-                      type="number"
-                      step="0.01"
-                      value={clientForm.paid_amount}
-                      onChange={(e) => handleInputChange('paid_amount', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Next Due Date</label>
-                    <input
-                      key="add-duedate"
-                      type="date"
-                      value={clientForm.next_due_date}
-                      onChange={(e) => handleInputChange('next_due_date', e.target.value)}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Payment Plan</label>
-                    <input
-                      key="add-plan"
-                      type="text"
-                      value={clientForm.payment_plan}
-                      onChange={(e) => handleInputChange('payment_plan', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="Monthly - $500"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Status</label>
-                    <select
-                      key="add-status"
-                      value={clientForm.status}
-                      onChange={(e) => handleInputChange('status', e.target.value)}
-                      style={styles.formSelect}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Past Due">Past Due</option>
-                      <option value="Paid in Full">Paid in Full</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Third Party Payor</label>
-                    <input
-                      key="add-payor"
-                      type="text"
-                      value={clientForm.third_party_payor}
-                      onChange={(e) => handleInputChange('third_party_payor', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="Insurance Company, etc."
-                    />
-                  </div>
-                </div>
-                
-                <div style={styles.formCheckbox}>
-                  <input
-                    key="add-retainer"
-                    type="checkbox"
-                    checked={clientForm.retainer_signed}
-                    onChange={(e) => handleCheckboxChange('retainer_signed', e.target.checked)}
-                  />
-                  <label style={styles.formLabel}>Retainer Agreement Signed</label>
-                </div>
-              </div>
-              
-              <div style={styles.modalFooter}>
-                <button
-                  type="button"
-                  onClick={() => setShowAddClientModal(false)}
-                  style={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={styles.button}
-                >
-                  <Plus style={{ width: '16px', height: '16px' }} />
-                  Add Client
-                </button>
-              </div>
-            </form>
+            <ClientForm
+              formData={clientForm}
+              onChange={handleClientFormChange}
+              onSubmit={addClient}
+              isEdit={false}
+            />
           </div>
         </div>
       )}
@@ -1607,159 +1607,12 @@ const DebugInput = () => {
               <h2 style={styles.modalTitle}>Edit Client</h2>
             </div>
             
-            <form onSubmit={updateClient}>
-              <div style={styles.modalBody}>
-                <div style={styles.formGrid}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Full Name *</label>
-                    <input
-                      key="edit-name"
-                      type="text"
-                      value={clientForm.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      style={styles.formInput}
-                      required
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Email Address</label>
-                    <input
-                      key="edit-email"
-                      type="email"
-                      value={clientForm.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Phone Number</label>
-                    <input
-                      key="edit-phone"
-                      type="tel"
-                      value={clientForm.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Law Firm</label>
-                    <input
-                      key="edit-lawfirm"
-                      type="text"
-                      value={clientForm.law_firm}
-                      onChange={(e) => handleInputChange('law_firm', e.target.value)}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Total Balance ($)</label>
-                    <input
-                      key="edit-balance"
-                      type="number"
-                      step="0.01"
-                      value={clientForm.total_balance}
-                      onChange={(e) => handleInputChange('total_balance', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Amount Paid ($)</label>
-                    <input
-                      key="edit-paid"
-                      type="number"
-                      step="0.01"
-                      value={clientForm.paid_amount}
-                      onChange={(e) => handleInputChange('paid_amount', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Next Due Date</label>
-                    <input
-                      key="edit-duedate"
-                      type="date"
-                      value={clientForm.next_due_date}
-                      onChange={(e) => handleInputChange('next_due_date', e.target.value)}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Payment Plan</label>
-                    <input
-                      key="edit-plan"
-                      type="text"
-                      value={clientForm.payment_plan}
-                      onChange={(e) => handleInputChange('payment_plan', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="Monthly - $500"
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Status</label>
-                    <select
-                      key="edit-status"
-                      value={clientForm.status}
-                      onChange={(e) => handleInputChange('status', e.target.value)}
-                      style={styles.formSelect}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Past Due">Past Due</option>
-                      <option value="Paid in Full">Paid in Full</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Third Party Payor</label>
-                    <input
-                      key="edit-payor"
-                      type="text"
-                      value={clientForm.third_party_payor}
-                      onChange={(e) => handleInputChange('third_party_payor', e.target.value)}
-                      style={styles.formInput}
-                      placeholder="Insurance Company, etc."
-                    />
-                  </div>
-                </div>
-                
-                <div style={styles.formCheckbox}>
-                  <input
-                    key="edit-retainer"
-                    type="checkbox"
-                    checked={clientForm.retainer_signed}
-                    onChange={(e) => handleCheckboxChange('retainer_signed', e.target.checked)}
-                  />
-                  <label style={styles.formLabel}>Retainer Agreement Signed</label>
-                </div>
-              </div>
-              
-              <div style={styles.modalFooter}>
-                <button
-                  type="button"
-                  onClick={() => setShowEditClientModal(false)}
-                  style={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={styles.button}
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
+            <ClientForm
+              formData={clientForm}
+              onChange={handleClientFormChange}
+              onSubmit={updateClient}
+              isEdit={true}
+            />
           </div>
         </div>
       )}
@@ -1929,44 +1782,12 @@ const DebugInput = () => {
               
               {/* Notes Tab */}
               {clientProfileTab === 'notes' && (
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
-                    Account Notes
-                  </h3>
-                  
-                  {/* Add New Note */}
-                  <FormTextarea
-                    value={newNote}
-                    onChange={handleNoteChange}
-                    placeholder="Add a note about this client..."
-                  />
-                  <button 
-                    onClick={addClientNote}
-                    style={styles.addNoteButton}
-                    disabled={!newNote.trim()}
-                  >
-                    Add Note
-                  </button>
-                  
-                  {/* Notes List */}
-                  {clientNotes.length > 0 ? (
-                    <div>
-                      {clientNotes.map((note) => (
-                        <div key={note.id} style={styles.noteItem}>
-                          <div style={styles.noteText}>{note.note}</div>
-                          <div style={styles.noteMeta}>
-                            {new Date(note.created_at).toLocaleDateString()} at {new Date(note.created_at).toLocaleTimeString()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                      <FileText style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.3 }} />
-                      <p>No notes available</p>
-                    </div>
-                  )}
-                </div>
+                <NotesSection
+                  noteValue={newNote}
+                  onNoteChange={handleNoteChange}
+                  onAddNote={addClientNote}
+                  notes={clientNotes}
+                />
               )}
               
               {/* Collection History Tab */}
@@ -2145,7 +1966,6 @@ const DebugInput = () => {
 
   return (
     <div style={styles.container}>
-      <DebugInput />
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
