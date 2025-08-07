@@ -628,7 +628,7 @@ const App = () => {
       setUser(data.user);
     } catch (error) {
       console.error('Error signing in:', error);
-      alert('Error signing in: ' + error.message);
+      window.alert('Error signing in: ' + error.message);
     } finally {
       setAuthLoading(false);
     }
@@ -641,12 +641,12 @@ const App = () => {
     try {
       // Validate passwords match
       if (signupForm.password !== signupForm.confirmPassword) {
-        alert('Passwords do not match');
+        window.alert('Passwords do not match');
         return;
       }
 
       if (signupForm.password.length < 6) {
-        alert('Password must be at least 6 characters long');
+        window.alert('Password must be at least 6 characters long');
         return;
       }
 
@@ -664,13 +664,13 @@ const App = () => {
       if (error) throw error;
       
       if (data.user) {
-        alert('Account created successfully! Please check your email to verify your account.');
+        window.alert('Account created successfully! Please check your email to verify your account.');
         setAuthMode('login');
         setSignupForm({ email: '', password: '', confirmPassword: '', companyName: '', fullName: '' });
       }
     } catch (error) {
       console.error('Error signing up:', error);
-      alert('Error creating account: ' + error.message);
+      window.alert('Error creating account: ' + error.message);
     } finally {
       setAuthLoading(false);
     }
@@ -687,11 +687,11 @@ const App = () => {
 
       if (error) throw error;
       
-      alert('Password reset email sent! Please check your inbox.');
+      window.alert('Password reset email sent! Please check your inbox.');
       setAuthMode('login');
     } catch (error) {
       console.error('Error sending reset email:', error);
-      alert('Error sending reset email: ' + error.message);
+      window.alert('Error sending reset email: ' + error.message);
     } finally {
       setAuthLoading(false);
     }
@@ -829,18 +829,18 @@ const App = () => {
         if (error) throw error;
         
         console.log('LawPay test result:', data);
-        alert('✅ LawPay Connection Successful!\n\n' + data.message);
+        window.alert('✅ LawPay Connection Successful!\n\n' + data.message);
         
       } catch (error) {
         console.error('LawPay test error:', error);
-        alert('❌ LawPay Test Failed:\n\n' + error.message);
+        window.alert('❌ LawPay Test Failed:\n\n' + error.message);
       } finally {
         setProfileLoading(false);
       }
     };
 
     const importLawPayData = async () => {
-      if (!confirm('This will import clients and transactions from LawPay sandbox. Continue?')) {
+      if (!window.confirm('This will import clients and transactions from LawPay sandbox. Continue?')) {
         return;
       }
       
@@ -855,14 +855,14 @@ const App = () => {
         if (error) throw error;
         
         console.log('Import result:', data);
-        alert(`✅ Import Complete!\n\nClients: ${data.clients.imported} imported, ${data.clients.errors} errors\nTransactions: ${data.transactions.imported} imported, ${data.transactions.errors} errors`);
+        window.alert(`✅ Import Complete!\n\nClients: ${data.clients.imported} imported, ${data.clients.errors} errors\nTransactions: ${data.transactions.imported} imported, ${data.transactions.errors} errors`);
         
         // Refresh the clients list
         await fetchClients();
         
       } catch (error) {
         console.error('Import error:', error);
-        alert('❌ Import Failed:\n\n' + error.message);
+        window.alert('❌ Import Failed:\n\n' + error.message);
       } finally {
         setProfileLoading(false);
       }
@@ -874,13 +874,13 @@ const App = () => {
 
       try {
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-          alert('New passwords do not match');
+          window.alert('New passwords do not match');
           setPasswordLoading(false);
           return;
         }
 
         if (passwordForm.newPassword.length < 6) {
-          alert('Password must be at least 6 characters long');
+          window.alert('Password must be at least 6 characters long');
           setPasswordLoading(false);
           return;
         }
@@ -891,11 +891,11 @@ const App = () => {
 
         if (error) throw error;
 
-        alert('Password updated successfully!');
+        window.alert('Password updated successfully!');
         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       } catch (error) {
         console.error('Error updating password:', error);
-        alert('Error updating password: ' + error.message);
+        window.alert('Error updating password: ' + error.message);
       } finally {
         setPasswordLoading(false);
       }
@@ -915,7 +915,7 @@ const App = () => {
 
         if (error) throw error;
 
-        alert('Profile updated successfully!');
+        window.alert('Profile updated successfully!');
         // Update the local user object if needed
         if (user) {
           user.user_metadata.full_name = profileForm.fullName;
@@ -923,7 +923,7 @@ const App = () => {
         }
       } catch (error) {
         console.error('Error updating profile:', error);
-        alert('Error updating profile: ' + error.message);
+        window.alert('Error updating profile: ' + error.message);
       } finally {
         setProfileLoading(false);
       }
@@ -1105,7 +1105,7 @@ const App = () => {
                 Once you delete your account, there is no going back. All your data will be permanently deleted.
               </p>
               <button 
-                onClick={() => alert('Account deletion feature coming soon. Contact support for assistance.')}
+                onClick={() => window.alert('Account deletion feature coming soon. Contact support for assistance.')}
                 style={{
                   backgroundColor: '#ef4444',
                   color: '#fff',
