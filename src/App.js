@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { DollarSign, Users, AlertTriangle, Mail, MessageSquare, CreditCard, TrendingUp, Phone, Eye, Plus, Search, Filter, Bell, Settings, User, LogOut, Lock, Edit3, Trash2 } from 'lucide-react';
+import { DollarSign, Users, AlertTriangle, Mail, MessageSquare, CreditCard, TrendingUp, Phone, Eye, Plus, Search, Filter, Bell, Settings, User, LogOut, Lock, Edit3, Trash2, FileText } from 'lucide-react';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'YOUR_SUPABASE_URL';
@@ -45,7 +45,12 @@ const App = () => {
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showEditClientModal, setShowEditClientModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showClientProfile, setShowClientProfile] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [clientProfileTab, setClientProfileTab] = useState('overview');
+  const [clientNotes, setClientNotes] = useState([]);
+  const [clientPaymentHistory, setClientPaymentHistory] = useState([]);
+  const [newNote, setNewNote] = useState('');
   const [clientForm, setClientForm] = useState({
     name: '',
     email: '',
@@ -74,6 +79,71 @@ const App = () => {
       console.error('Error fetching clients:', error);
       addNotification('Error loading clients', 'alert');
     }
+  };
+
+  const fetchClientNotes = async (clientId) => {
+    try {
+      const { data, error } = await supabase
+        .from('client_notes')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setClientNotes(data || []);
+    } catch (error) {
+      console.error('Error fetching client notes:', error);
+    }
+  };
+
+  const fetchClientPaymentHistory = async (clientId) => {
+    try {
+      const { data, error } = await supabase
+        .from('payment_history')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('payment_date', { ascending: false });
+      
+      if (error) throw error;
+      setClientPaymentHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+    }
+  };
+
+  const addClientNote = async () => {
+    if (!newNote.trim() || !selectedClient) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('client_notes')
+        .insert([{
+          client_id: selectedClient.id,
+          note: newNote.trim(),
+          user_id: user?.id,
+          created_at: new Date().toISOString()
+        }])
+        .select();
+
+      if (error) throw error;
+      
+      setClientNotes(prev => [data[0], ...prev]);
+      setNewNote('');
+      await addNotification('Note added successfully', 'info');
+    } catch (error) {
+      console.error('Error adding note:', error);
+      await addNotification('Error adding note', 'alert');
+    }
+  };
+
+  const openClientProfile = async (client) => {
+    setSelectedClient(client);
+    setClientProfileTab('overview');
+    setShowClientProfile(true);
+    
+    // Fetch related data
+    await fetchClientNotes(client.id);
+    await fetchClientPaymentHistory(client.id);
   };
 
   const fetchCollectionEfforts = async () => {
@@ -951,6 +1021,141 @@ const App = () => {
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500'
+    },
+    // Client Profile Modal styles
+    profileModal: {
+      backgroundColor: '#fff',
+      borderRadius: '12px',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      width: '95%',
+      maxWidth: '900px',
+      maxHeight: '90vh',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    profileHeader: {
+      padding: '24px',
+      borderBottom: '1px solid #e5e7eb',
+      backgroundColor: '#f9fafb'
+    },
+    profileTitle: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      color: '#111827',
+      margin: 0,
+      marginBottom: '8px'
+    },
+    profileSubtitle: {
+      fontSize: '14px',
+      color: '#6b7280',
+      margin: 0
+    },
+    profileTabs: {
+      display: 'flex',
+      borderBottom: '1px solid #e5e7eb',
+      backgroundColor: '#fff'
+    },
+    profileTab: {
+      flex: 1,
+      padding: '12px 16px',
+      border: 'none',
+      backgroundColor: 'transparent',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+      borderBottom: '2px solid transparent'
+    },
+    activeProfileTab: {
+      color: '#dc2626',
+      borderBottomColor: '#dc2626'
+    },
+    inactiveProfileTab: {
+      color: '#6b7280'
+    },
+    profileContent: {
+      flex: 1,
+      overflow: 'auto',
+      padding: '24px'
+    },
+    infoGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gap: '20px',
+      marginBottom: '24px'
+    },
+    infoCard: {
+      backgroundColor: '#f9fafb',
+      padding: '16px',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb'
+    },
+    infoLabel: {
+      fontSize: '12px',
+      fontWeight: '500',
+      color: '#6b7280',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      marginBottom: '4px'
+    },
+    infoValue: {
+      fontSize: '16px',
+      fontWeight: '500',
+      color: '#111827'
+    },
+    historyItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0',
+      borderBottom: '1px solid #e5e7eb'
+    },
+    historyDate: {
+      fontSize: '12px',
+      color: '#6b7280'
+    },
+    historyAmount: {
+      fontSize: '16px',
+      fontWeight: '600',
+      color: '#059669'
+    },
+    noteItem: {
+      backgroundColor: '#f9fafb',
+      padding: '16px',
+      borderRadius: '8px',
+      marginBottom: '12px',
+      border: '1px solid #e5e7eb'
+    },
+    noteText: {
+      fontSize: '14px',
+      color: '#374151',
+      marginBottom: '8px',
+      lineHeight: '1.5'
+    },
+    noteMeta: {
+      fontSize: '12px',
+      color: '#6b7280'
+    },
+    noteInput: {
+      width: '100%',
+      minHeight: '80px',
+      padding: '12px',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontFamily: 'inherit',
+      resize: 'vertical',
+      marginBottom: '12px'
+    },
+    addNoteButton: {
+      backgroundColor: '#dc2626',
+      color: '#fff',
+      padding: '8px 16px',
+      borderRadius: '6px',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
     }
   };
 
@@ -1466,6 +1671,238 @@ const App = () => {
         </div>
       )}
 
+      {/* Client Profile Modal */}
+      {showClientProfile && selectedClient && (
+        <div 
+          style={styles.modalOverlay}
+          onClick={() => setShowClientProfile(false)}
+        >
+          <div 
+            style={styles.profileModal} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Profile Header */}
+            <div style={styles.profileHeader}>
+              <h2 style={styles.profileTitle}>{selectedClient.name}</h2>
+              <p style={styles.profileSubtitle}>
+                {selectedClient.law_firm} • {selectedClient.status}
+              </p>
+            </div>
+            
+            {/* Profile Tabs */}
+            <div style={styles.profileTabs}>
+              {[
+                { id: 'overview', name: 'Overview' },
+                { id: 'payments', name: 'Payment History' },
+                { id: 'notes', name: 'Account Notes' },
+                { id: 'collections', name: 'Collection History' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setClientProfileTab(tab.id)}
+                  style={{
+                    ...styles.profileTab,
+                    ...(clientProfileTab === tab.id ? styles.activeProfileTab : styles.inactiveProfileTab)
+                  }}
+                >
+                  {tab.name}
+                </button>
+              ))}
+            </div>
+            
+            {/* Profile Content */}
+            <div style={styles.profileContent}>
+              
+              {/* Overview Tab */}
+              {clientProfileTab === 'overview' && (
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
+                    Client Information
+                  </h3>
+                  <div style={styles.infoGrid}>
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Contact Information</div>
+                      <div style={styles.infoValue}>{selectedClient.email || 'No email'}</div>
+                      <div style={styles.infoValue}>{selectedClient.phone || 'No phone'}</div>
+                    </div>
+                    
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Total Balance</div>
+                      <div style={styles.infoValue}>${(selectedClient.total_balance || 0).toLocaleString()}</div>
+                    </div>
+                    
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Amount Paid</div>
+                      <div style={styles.infoValue}>${(selectedClient.paid_amount || 0).toLocaleString()}</div>
+                    </div>
+                    
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Outstanding Balance</div>
+                      <div style={styles.infoValue}>
+                        ${((selectedClient.total_balance || 0) - (selectedClient.paid_amount || 0)).toLocaleString()}
+                      </div>
+                    </div>
+                    
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Payment Plan</div>
+                      <div style={styles.infoValue}>{selectedClient.payment_plan || 'Not set'}</div>
+                    </div>
+                    
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Next Due Date</div>
+                      <div style={styles.infoValue}>{selectedClient.next_due_date || 'Not set'}</div>
+                    </div>
+                    
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Retainer Status</div>
+                      <div style={styles.infoValue}>
+                        {selectedClient.retainer_signed ? '✅ Signed' : '⏳ Pending'}
+                      </div>
+                    </div>
+                    
+                    <div style={styles.infoCard}>
+                      <div style={styles.infoLabel}>Third Party Payor</div>
+                      <div style={styles.infoValue}>{selectedClient.third_party_payor || 'None'}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Payment History Tab */}
+              {clientProfileTab === 'payments' && (
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
+                    Payment History
+                  </h3>
+                  {clientPaymentHistory.length > 0 ? (
+                    <div>
+                      {clientPaymentHistory.map((payment) => (
+                        <div key={payment.id} style={styles.historyItem}>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
+                              Payment Received
+                            </div>
+                            <div style={styles.historyDate}>
+                              {new Date(payment.payment_date).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div style={styles.historyAmount}>
+                            ${payment.amount.toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                      <DollarSign style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.3 }} />
+                      <p>No payment history available</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Notes Tab */}
+              {clientProfileTab === 'notes' && (
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
+                    Account Notes
+                  </h3>
+                  
+                  {/* Add New Note */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Add a note about this client..."
+                      style={styles.noteInput}
+                    />
+                    <button 
+                      onClick={addClientNote}
+                      style={styles.addNoteButton}
+                      disabled={!newNote.trim()}
+                    >
+                      Add Note
+                    </button>
+                  </div>
+                  
+                  {/* Notes List */}
+                  {clientNotes.length > 0 ? (
+                    <div>
+                      {clientNotes.map((note) => (
+                        <div key={note.id} style={styles.noteItem}>
+                          <div style={styles.noteText}>{note.note}</div>
+                          <div style={styles.noteMeta}>
+                            {new Date(note.created_at).toLocaleDateString()} at {new Date(note.created_at).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                      <FileText style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.3 }} />
+                      <p>No notes available</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Collection History Tab */}
+              {clientProfileTab === 'collections' && (
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
+                    Collection History
+                  </h3>
+                  {collectionEfforts.filter(effort => effort.client_id === selectedClient.id).length > 0 ? (
+                    <div>
+                      {collectionEfforts
+                        .filter(effort => effort.client_id === selectedClient.id)
+                        .map((effort) => (
+                        <div key={effort.id} style={styles.historyItem}>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
+                              {effort.type} - {effort.status}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                              {effort.message}
+                            </div>
+                            <div style={styles.historyDate}>
+                              {new Date(effort.sent_date).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div style={{ 
+                            ...styles.statusBadge, 
+                            backgroundColor: effort.type === 'SMS' ? '#dbeafe' : '#f3e8ff',
+                            color: effort.type === 'SMS' ? '#1e40af' : '#7c3aed'
+                          }}>
+                            {effort.type}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                      <AlertTriangle style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.3 }} />
+                      <p>No collection efforts recorded</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+            </div>
+            
+            {/* Close Button */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', textAlign: 'right' }}>
+              <button
+                onClick={() => setShowClientProfile(false)}
+                style={styles.cancelButton}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={styles.searchContainer}>
         <div style={styles.searchHeader}>
           <div style={styles.searchInputContainer}>
@@ -1536,7 +1973,11 @@ const App = () => {
                   <td style={styles.tableCell}>{client.next_due_date}</td>
                   <td style={styles.tableCell}>
                     <div style={styles.actionButtons}>
-                      <button style={styles.iconButton}>
+                      <button 
+                        onClick={() => openClientProfile(client)} 
+                        style={styles.iconButton}
+                        title="View Client Profile"
+                      >
                         <Eye style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
