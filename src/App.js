@@ -309,6 +309,12 @@ const App = () => {
     fullName: ''
   });
   
+  // State for settings  
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [profileForm, setProfileForm] = useState({ fullName: '', companyName: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+
   // Modal and form state
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showEditClientModal, setShowEditClientModal] = useState(false);
@@ -776,7 +782,15 @@ const App = () => {
     }
   };
 
-  // Fetch data when user is authenticated
+  // Initialize profile form when user changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        fullName: user?.user_metadata?.full_name || '',
+        companyName: user?.user_metadata?.company_name || ''
+      });
+    }
+  }, [user]);
   useEffect(() => {
     if (user) {
       fetchClients();
@@ -2202,14 +2216,6 @@ const App = () => {
   const IntegrationsTab = () => <div style={styles.chartCard}><h3>Integrations - Coming Soon</h3></div>;
   
   const SettingsTab = () => {
-    const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    const [profileForm, setProfileForm] = useState({
-      fullName: user?.user_metadata?.full_name || '',
-      companyName: user?.user_metadata?.company_name || ''
-    });
-    const [passwordLoading, setPasswordLoading] = useState(false);
-    const [profileLoading, setProfileLoading] = useState(false);
-
     const updatePassword = async (e) => {
       e.preventDefault();
       setPasswordLoading(true);
@@ -2372,7 +2378,7 @@ const App = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
                 <span style={{ fontWeight: '500' }}>Account Created:</span>
-                <span>{new Date(user?.created_at).toLocaleDateString()}</span>
+                <span>{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
                 <span style={{ fontWeight: '500' }}>Last Sign In:</span>
