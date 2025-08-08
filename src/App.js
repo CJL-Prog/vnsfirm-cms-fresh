@@ -2357,7 +2357,36 @@ const App = () => {
     </div>
   );
 
-  const ClientsTab = () => (
+  const ClientsTab = () => {
+    // Define action handlers within ClientsTab scope
+    const handleSendEmail = async (clientId, event) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      console.log('handleSendEmail called with clientId:', clientId);
+      await sendEmail(clientId);
+    };
+
+    const handleSendSMS = async (clientId, event) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      console.log('handleSendSMS called with clientId:', clientId);
+      await sendSMS(clientId);
+    };
+
+    const handleMakeCall = async (clientId, event) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      console.log('handleMakeCall called with clientId:', clientId);
+      await makeCall(clientId);
+    };
+
+    return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={styles.sectionTitle}>Client Management</h2>
@@ -2732,40 +2761,28 @@ const App = () => {
                         <Edit3 style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          sendEmail(client.id);
-                        }} 
-                        style={styles.iconButton} 
+                        onClick={(e) => handleSendEmail(client.id, e)} 
+                        style={{...styles.iconButton, color: '#7c3aed'}} 
                         title="Send Email"
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f3e8ff'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
                         <Mail style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          sendSMS(client.id);
-                        }} 
-                        style={styles.iconButton} 
+                        onClick={(e) => handleSendSMS(client.id, e)} 
+                        style={{...styles.iconButton, color: '#059669'}} 
                         title="Send SMS"
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f0fdf4'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
                         <MessageSquare style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          makeCall(client.id);
-                        }} 
-                        style={styles.iconButton} 
+                        onClick={(e) => handleMakeCall(client.id, e)} 
+                        style={{...styles.iconButton, color: '#f59e0b'}} 
                         title="Make Call"
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fffbeb'}
                         onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
                         <Phone style={{ width: '16px', height: '16px' }} />
@@ -2786,7 +2803,8 @@ const App = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
 const CollectionsTab = () => {
   const [collectionView, setCollectionView] = useState('overview'); // 'overview', 'efforts', 'templates'
