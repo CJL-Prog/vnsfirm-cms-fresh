@@ -783,296 +783,252 @@ const App = () => {
   );
 
   // Settings Tab
-  const SettingsTab = () => {
-    // Initialize profile form state with user data
-    const [profileForm, setProfileForm] = useState({
-      fullName: user?.user_metadata?.full_name || '',
-      companyName: user?.user_metadata?.company_name || ''
-    });
-    
-    // Password form state
-    const [passwordForm, setPasswordForm] = useState({ 
-      currentPassword: '', 
-      newPassword: '', 
-      confirmPassword: '' 
-    });
-    
-    const [passwordLoading, setPasswordLoading] = useState(false);
-    const [profileLoading, setProfileLoading] = useState(false);
+ // This is what your SettingsTab should look like (NO LawPay integration)
+const SettingsTab = () => {
+  // Initialize profile form state with user data
+  const [profileForm, setProfileForm] = useState({
+    fullName: user?.user_metadata?.full_name || '',
+    companyName: user?.user_metadata?.company_name || ''
+  });
+  
+  // Password form state
+  const [passwordForm, setPasswordForm] = useState({ 
+    currentPassword: '', 
+    newPassword: '', 
+    confirmPassword: '' 
+  });
+  
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-    // Handle profile form field changes
-    const handleProfileChange = useCallback((field, value) => {
-      setProfileForm(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }, []);
+  // Handle profile form field changes
+  const handleProfileChange = useCallback((field, value) => {
+    setProfileForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
 
-    // Handle password form field changes
-    const handlePasswordChange = useCallback((field, value) => {
-      setPasswordForm(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }, []);
+  // Handle password form field changes
+  const handlePasswordChange = useCallback((field, value) => {
+    setPasswordForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
 
-   
-    const updatePassword = async (e) => {
-      e.preventDefault();
-      setPasswordLoading(true);
+  const updatePassword = async (e) => {
+    e.preventDefault();
+    setPasswordLoading(true);
 
-      try {
-        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-          window.alert('New passwords do not match');
-          setPasswordLoading(false);
-          return;
-        }
-
-        if (passwordForm.newPassword.length < 6) {
-          window.alert('Password must be at least 6 characters long');
-          setPasswordLoading(false);
-          return;
-        }
-
-        const { error } = await supabase.auth.updateUser({
-          password: passwordForm.newPassword
-        });
-
-        if (error) throw error;
-
-        window.alert('Password updated successfully!');
-        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      } catch (error) {
-        console.error('Error updating password:', error);
-        window.alert('Error updating password: ' + error.message);
-      } finally {
+    try {
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        window.alert('New passwords do not match');
         setPasswordLoading(false);
+        return;
       }
-    };
 
-    const updateProfile = async (e) => {
-      e.preventDefault();
-      setProfileLoading(true);
+      if (passwordForm.newPassword.length < 6) {
+        window.alert('Password must be at least 6 characters long');
+        setPasswordLoading(false);
+        return;
+      }
 
-      try {
-        const { error } = await supabase.auth.updateUser({
-          data: {
-            full_name: profileForm.fullName,
-            company_name: profileForm.companyName,
-          }
-        });
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        window.alert('Profile updated successfully!');
-        // Update the local user object if needed
-        if (user) {
-          user.user_metadata.full_name = profileForm.fullName;
-          user.user_metadata.company_name = profileForm.companyName;
+      window.alert('Password updated successfully!');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      console.error('Error updating password:', error);
+      window.alert('Error updating password: ' + error.message);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const updateProfile = async (e) => {
+    e.preventDefault();
+    setProfileLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: profileForm.fullName,
+          company_name: profileForm.companyName,
         }
-      } catch (error) {
-        console.error('Error updating profile:', error);
-        window.alert('Error updating profile: ' + error.message);
-      } finally {
-        setProfileLoading(false);
+      });
+
+      if (error) throw error;
+
+      window.alert('Profile updated successfully!');
+      // Update the local user object if needed
+      if (user) {
+        user.user_metadata.full_name = profileForm.fullName;
+        user.user_metadata.company_name = profileForm.companyName;
       }
-    };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      window.alert('Error updating profile: ' + error.message);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <h2 style={styles.sectionTitle}>Account Settings</h2>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <h2 style={styles.sectionTitle}>Account Settings</h2>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-          
-          {/* LawPay Integration */}
-          <div style={styles.chartCard}>
-            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>LawPay Integration</h3>
+        {/* Profile Settings */}
+        <div style={styles.chartCard}>
+          <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Profile Information</h3>
+          <form onSubmit={updateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Full Name</label>
+              <input
+                type="text"
+                value={profileForm.fullName}
+                onChange={(e) => handleProfileChange('fullName', e.target.value)}
+                style={styles.formInput}
+                required
+              />
+            </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button 
-                onClick={testLawPayConnection}
-                style={{
-                  ...styles.button,
-                  opacity: profileLoading ? 0.6 : 1,
-                  cursor: profileLoading ? 'not-allowed' : 'pointer',
-                  backgroundColor: '#059669'
-                }}
-                disabled={profileLoading}
-              >
-                {profileLoading ? 'Testing...' : '🧪 Test LawPay Connection'}
-              </button>
-              
-              <button 
-                onClick={importLawPayData}
-                style={{
-                  ...styles.button,
-                  opacity: profileLoading ? 0.6 : 1,
-                  cursor: profileLoading ? 'not-allowed' : 'pointer',
-                  backgroundColor: '#dc2626'
-                }}
-                disabled={profileLoading}
-              >
-                {profileLoading ? 'Importing...' : '📥 Import LawPay Data'}
-              </button>
-              
-              <div style={{ 
-                padding: '12px', 
-                backgroundColor: '#f0f9ff', 
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: '#0369a1'
-              }}>
-                <strong>Environment:</strong> Sandbox (Test Mode)<br/>
-                <strong>Status:</strong> Ready for testing
-              </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Company/Firm Name</label>
+              <input
+                type="text"
+                value={profileForm.companyName}
+                onChange={(e) => handleProfileChange('companyName', e.target.value)}
+                style={styles.formInput}
+                required
+              />
             </div>
-          </div>
-
-          {/* Profile Settings */}
-          <div style={styles.chartCard}>
-            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Profile Information</h3>
-            <form onSubmit={updateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Full Name</label>
-                <input
-                  type="text"
-                  value={profileForm.fullName}
-                  onChange={(e) => handleProfileChange('fullName', e.target.value)}
-                  style={styles.formInput}
-                  required
-                />
-              </div>
-              
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Company/Firm Name</label>
-                <input
-                  type="text"
-                  value={profileForm.companyName}
-                  onChange={(e) => handleProfileChange('companyName', e.target.value)}
-                  style={styles.formInput}
-                  required
-                />
-              </div>
-              
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Email Address</label>
-                <input
-                  type="email"
-                  value={user?.email || ''}
-                  style={{ ...styles.formInput, backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
-                  disabled
-                />
-                <small style={{ color: '#6b7280', fontSize: '12px' }}>
-                  Email cannot be changed. Contact support if needed.
-                </small>
-              </div>
-              
-              <button 
-                type="submit" 
-                style={{
-                  ...styles.button,
-                  opacity: profileLoading ? 0.6 : 1,
-                  cursor: profileLoading ? 'not-allowed' : 'pointer'
-                }}
-                disabled={profileLoading}
-              >
-                {profileLoading ? 'Updating...' : 'Update Profile'}
-              </button>
-            </form>
-          </div>
-
-          {/* Password Settings */}
-          <div style={styles.chartCard}>
-            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Change Password</h3>
-            <form onSubmit={updatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>New Password</label>
-                <input
-                  type="password"
-                  placeholder="Enter new password (min 6 characters)"
-                  value={passwordForm.newPassword}
-                  onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
-                  style={styles.formInput}
-                  required
-                  minLength={6}
-                />
-              </div>
-              
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Confirm New Password</label>
-                <input
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
-                  style={styles.formInput}
-                  required
-                />
-              </div>
-              
-              <button 
-                type="submit" 
-                style={{
-                  ...styles.button,
-                  opacity: passwordLoading ? 0.6 : 1,
-                  cursor: passwordLoading ? 'not-allowed' : 'pointer'
-                }}
-                disabled={passwordLoading}
-              >
-                {passwordLoading ? 'Updating...' : 'Update Password'}
-              </button>
-            </form>
-          </div>
-
-          {/* Account Info */}
-          <div style={styles.chartCard}>
-            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Account Information</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-                <span style={{ fontWeight: '500' }}>Account Created:</span>
-                <span>{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-                <span style={{ fontWeight: '500' }}>Last Sign In:</span>
-                <span>{user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'N/A'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-                <span style={{ fontWeight: '500' }}>Email Verified:</span>
-                <span style={{ color: user?.email_confirmed_at ? '#059669' : '#ef4444' }}>
-                  {user?.email_confirmed_at ? '✅ Yes' : '❌ No'}
-                </span>
-              </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Email Address</label>
+              <input
+                type="email"
+                value={user?.email || ''}
+                style={{ ...styles.formInput, backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                disabled
+              />
+              <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                Email cannot be changed. Contact support if needed.
+              </small>
             </div>
-          </div>
+            
+            <button 
+              type="submit" 
+              style={{
+                ...styles.button,
+                opacity: profileLoading ? 0.6 : 1,
+                cursor: profileLoading ? 'not-allowed' : 'pointer'
+              }}
+              disabled={profileLoading}
+            >
+              {profileLoading ? 'Updating...' : 'Update Profile'}
+            </button>
+          </form>
+        </div>
 
-          {/* Danger Zone */}
-          <div style={styles.chartCard}>
-            <h3 style={{ ...styles.chartTitle, marginBottom: '16px', color: '#ef4444' }}>Danger Zone</h3>
-            <div style={{ padding: '16px', border: '1px solid #fee2e2', borderRadius: '8px', backgroundColor: '#fef2f2' }}>
-              <h4 style={{ color: '#dc2626', margin: '0 0 8px 0' }}>Delete Account</h4>
-              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
-                Once you delete your account, there is no going back. All your data will be permanently deleted.
-              </p>
-              <button 
-                onClick={() => window.alert('Account deletion feature coming soon. Contact support for assistance.')}
-                style={{
-                  backgroundColor: '#ef4444',
-                  color: '#fff',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                Delete Account
-              </button>
+        {/* Password Settings */}
+        <div style={styles.chartCard}>
+          <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Change Password</h3>
+          <form onSubmit={updatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>New Password</label>
+              <input
+                type="password"
+                placeholder="Enter new password (min 6 characters)"
+                value={passwordForm.newPassword}
+                onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                style={styles.formInput}
+                required
+                minLength={6}
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Confirm New Password</label>
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                style={styles.formInput}
+                required
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              style={{
+                ...styles.button,
+                opacity: passwordLoading ? 0.6 : 1,
+                cursor: passwordLoading ? 'not-allowed' : 'pointer'
+              }}
+              disabled={passwordLoading}
+            >
+              {passwordLoading ? 'Updating...' : 'Update Password'}
+            </button>
+          </form>
+        </div>
+
+        {/* Account Info */}
+        <div style={styles.chartCard}>
+          <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Account Information</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+              <span style={{ fontWeight: '500' }}>Account Created:</span>
+              <span>{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+              <span style={{ fontWeight: '500' }}>Last Sign In:</span>
+              <span>{user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'N/A'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+              <span style={{ fontWeight: '500' }}>Email Verified:</span>
+              <span style={{ color: user?.email_confirmed_at ? '#059669' : '#ef4444' }}>
+                {user?.email_confirmed_at ? '✅ Yes' : '❌ No'}
+              </span>
             </div>
           </div>
         </div>
+
+        {/* Danger Zone */}
+        <div style={styles.chartCard}>
+          <h3 style={{ ...styles.chartTitle, marginBottom: '16px', color: '#ef4444' }}>Danger Zone</h3>
+          <div style={{ padding: '16px', border: '1px solid #fee2e2', borderRadius: '8px', backgroundColor: '#fef2f2' }}>
+            <h4 style={{ color: '#dc2626', margin: '0 0 8px 0' }}>Delete Account</h4>
+            <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
+              Once you delete your account, there is no going back. All your data will be permanently deleted.
+            </p>
+            <button 
+              onClick={() => window.alert('Account deletion feature coming soon. Contact support for assistance.')}
+              style={{
+                backgroundColor: '#ef4444',
+                color: '#fff',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   // Styles (keeping existing styles)
   const styles = {
