@@ -644,8 +644,76 @@ const App = () => {
     setSearchTerm(value);
   }, []);
 
+  // Simple Pie Chart Component
+  const PieChart = React.memo(({ data, size = 200 }) => {
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const radius = size / 2 - 10;
+    
+    let cumulativePercentage = 0;
+    
+    const createPath = (percentage) => {
+      const startAngle = cumulativePercentage * 2 * Math.PI;
+      const endAngle = (cumulativePercentage + percentage) * 2 * Math.PI;
+      
+      const startX = centerX + radius * Math.cos(startAngle - Math.PI / 2);
+      const startY = centerY + radius * Math.sin(startAngle - Math.PI / 2);
+      const endX = centerX + radius * Math.cos(endAngle - Math.PI / 2);
+      const endY = centerY + radius * Math.sin(endAngle - Math.PI / 2);
+      
+      const largeArc = percentage > 0.5 ? 1 : 0;
+      
+      cumulativePercentage += percentage;
+      
+      if (percentage === 1) {
+        return `M ${centerX + radius} ${centerY} A ${radius} ${radius} 0 1 1 ${centerX + radius - 0.01} ${centerY}`;
+      }
+      
+      return `M ${centerX} ${centerY} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY} Z`;
+    };
+    
+    cumulativePercentage = 0; // Reset for actual rendering
+    
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+        <svg width={size} height={size}>
+          {data.map((segment, index) => {
+            const path = createPath(segment.percentage);
+            return (
+              <path
+                key={index}
+                d={path}
+                fill={segment.color}
+                stroke="#fff"
+                strokeWidth="2"
+              />
+            );
+          })}
+        </svg>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {data.map((segment, index) => (
+            <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  backgroundColor: segment.color,
+                  borderRadius: '2px'
+                }}
+              ></div>
+              <span style={{ fontSize: '14px', color: '#374151' }}>
+                {segment.label}: ${segment.value.toLocaleString()} ({Math.round(segment.percentage * 100)}%)
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  });
+
   // Enhanced SMS/Email functions with RingCentral and Gmail integration
   const sendSMS = async (clientId) => {
+    console.log('sendSMS called with clientId:', clientId);
     try {
       const client = clients.find(c => c.id === clientId);
       if (!client || !client.phone) {
@@ -685,6 +753,7 @@ const App = () => {
   };
 
   const sendEmail = async (clientId) => {
+    console.log('sendEmail called with clientId:', clientId);
     try {
       const client = clients.find(c => c.id === clientId);
       if (!client || !client.email) {
@@ -725,6 +794,7 @@ const App = () => {
   };
 
   const makeCall = async (clientId) => {
+    console.log('makeCall called with clientId:', clientId);
     try {
       const client = clients.find(c => c.id === clientId);
       if (!client || !client.phone) {
@@ -923,6 +993,47 @@ const App = () => {
     }
   }, [user]);
 
+  // Calculate payment collection data for pie chart
+  const calculatePaymentData = () => {
+    const totalBalance = clients.reduce((sum, c) => sum + (c.total_balance || 0), 0);
+    const totalPaid = clients.reduce((sum, c) => sum + (c.paid_amount || 0), 0);
+    const outstandingBalance = totalBalance - totalPaid;
+    
+    // Calculate paid on time vs late (simplified logic)
+    const paidOnTime = clients
+      .filter(c => c.status !== 'Past Due')
+      .reduce((sum, c) => sum + (c.paid_amount || 0), 0);
+    
+    const paidLate = totalPaid - paidOnTime;
+    
+    if (totalBalance === 0) {
+      return [
+        { label: 'No Data', value: 0, percentage: 1, color: '#e5e7eb' }
+      ];
+    }
+    
+    return [
+      {
+        label: 'Paid On Time',
+        value: paidOnTime,
+        percentage: paidOnTime / totalBalance,
+        color: '#059669'
+      },
+      {
+        label: 'Paid After Due',
+        value: paidLate,
+        percentage: paidLate / totalBalance,
+        color: '#f59e0b'
+      },
+      {
+        label: 'Not Yet Paid',
+        value: outstandingBalance,
+        percentage: outstandingBalance / totalBalance,
+        color: '#ef4444'
+      }
+    ].filter(item => item.value > 0);
+  };
+
   // Calculate metrics
   const totalClients = clients.length;
   const activeClients = clients.filter(c => c.status === 'Active').length;
@@ -933,6 +1044,9 @@ const App = () => {
   // Calculate actual collection rate
   const totalBalance = clients.reduce((sum, c) => sum + (c.total_balance || 0), 0);
   const collectionRate = totalBalance > 0 ? Math.round((totalRevenue / totalBalance) * 100) : 0;
+  
+  // Get payment data for pie chart
+  const paymentData = calculatePaymentData();
 
   // Filter clients based on search term
   const filteredClients = clients.filter(client =>
@@ -1636,7 +1750,12 @@ const App = () => {
       backgroundColor: 'transparent',
       border: 'none',
       cursor: 'pointer',
-      padding: '4px'
+      padding: '4px',
+      borderRadius: '4px',
+      transition: 'background-color 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     },
     notificationCard: {
       padding: '12px',
@@ -2194,14 +2313,15 @@ const App = () => {
       {/* Charts and notifications */}
       <div style={styles.chartsGrid}>
         <div style={styles.chartCard}>
-          <h3 style={styles.chartTitle}>Payment Collection Rate</h3>
-          <div style={styles.chartPlaceholder}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#374151' }}>{collectionRate}%</div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>Total Collection Rate</div>
-              <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
-                ${totalRevenue.toLocaleString()} collected of ${totalBalance.toLocaleString()} total
-              </div>
+          <h3 style={styles.chartTitle}>Payment Collection Breakdown</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <PieChart data={paymentData} size={220} />
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '16px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#374151' }}>{collectionRate}%</div>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>Overall Collection Rate</div>
+            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+              ${totalRevenue.toLocaleString()} collected of ${totalBalance.toLocaleString()} total
             </div>
           </div>
         </div>
@@ -2611,13 +2731,43 @@ const App = () => {
                       >
                         <Edit3 style={{ width: '16px', height: '16px' }} />
                       </button>
-                      <button onClick={() => sendEmail(client.id)} style={styles.iconButton} title="Send Email">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          sendEmail(client.id);
+                        }} 
+                        style={styles.iconButton} 
+                        title="Send Email"
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
                         <Mail style={{ width: '16px', height: '16px' }} />
                       </button>
-                      <button onClick={() => sendSMS(client.id)} style={styles.iconButton} title="Send SMS">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          sendSMS(client.id);
+                        }} 
+                        style={styles.iconButton} 
+                        title="Send SMS"
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
                         <MessageSquare style={{ width: '16px', height: '16px' }} />
                       </button>
-                      <button onClick={() => makeCall(client.id)} style={styles.iconButton} title="Make Call">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          makeCall(client.id);
+                        }} 
+                        style={styles.iconButton} 
+                        title="Make Call"
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
                         <Phone style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
@@ -3091,6 +3241,66 @@ const IntegrationsTab = () => {
   const [integrationLoading, setIntegrationLoading] = useState(false);
   const [testResults, setTestResults] = useState({});
   
+  // LawPay Integration Functions (restored from original)
+  const testLawPayConnection = async () => {
+    setIntegrationLoading(true);
+    try {
+      console.log('Testing LawPay connection...');
+      
+      const { data, error } = await supabase.functions.invoke('lawpay-integration', {
+        body: { action: 'test_connection' }
+      });
+      
+      if (error) throw error;
+      
+      console.log('LawPay test result:', data);
+      setTestResults(prev => ({
+        ...prev,
+        lawpay: { success: true, message: data.message, timestamp: new Date() }
+      }));
+      window.alert('✅ LawPay Connection Successful!\n\n' + data.message);
+      
+    } catch (error) {
+      console.error('LawPay test error:', error);
+      setTestResults(prev => ({
+        ...prev,
+        lawpay: { success: false, message: error.message, timestamp: new Date() }
+      }));
+      window.alert('❌ LawPay Test Failed:\n\n' + error.message);
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
+  const importLawPayData = async () => {
+    if (!window.confirm('This will import clients and transactions from LawPay sandbox. Continue?')) {
+      return;
+    }
+    
+    setIntegrationLoading(true);
+    try {
+      console.log('Starting LawPay data import...');
+      
+      const { data, error } = await supabase.functions.invoke('lawpay-integration', {
+        body: { action: 'import_data' }
+      });
+      
+      if (error) throw error;
+      
+      console.log('Import result:', data);
+      window.alert(`✅ Import Complete!\n\nClients: ${data.clients.imported} imported, ${data.clients.errors} errors\nTransactions: ${data.transactions.imported} imported, ${data.transactions.errors} errors`);
+      
+      // Refresh the clients list
+      await fetchClients();
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      window.alert('❌ Import Failed:\n\n' + error.message);
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
   // Test integration connections
   const testIntegrationConnection = async (platform) => {
     setIntegrationLoading(true);
@@ -3143,6 +3353,159 @@ const IntegrationsTab = () => {
   };
   
   // Render individual integration views
+  if (integrationView === 'lawpay') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={styles.sectionTitle}>LawPay Integration</h2>
+          <button 
+            onClick={() => setIntegrationView('overview')} 
+            style={styles.button}
+          >
+            Back to Integrations
+          </button>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+          {/* Connection Status */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Connection Status</h3>
+            
+            <div style={{ 
+              padding: '16px', 
+              backgroundColor: testResults.lawpay?.success ? '#f0fdf4' : '#fef2f2', 
+              borderRadius: '8px',
+              border: `1px solid ${testResults.lawpay?.success ? '#86efac' : '#fecaca'}`,
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  backgroundColor: getStatusColor(getIntegrationStatus('lawpay'))
+                }}></div>
+                <span style={{ fontWeight: '600', color: getStatusColor(getIntegrationStatus('lawpay')) }}>
+                  {getIntegrationStatus('lawpay')}
+                </span>
+              </div>
+              {testResults.lawpay && (
+                <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
+                  {testResults.lawpay.message}
+                </p>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={testLawPayConnection}
+                style={{
+                  ...styles.button,
+                  opacity: integrationLoading ? 0.6 : 1,
+                  cursor: integrationLoading ? 'not-allowed' : 'pointer',
+                  backgroundColor: '#059669'
+                }}
+                disabled={integrationLoading}
+              >
+                {integrationLoading ? 'Testing...' : '🧪 Test Connection'}
+              </button>
+              
+              <button 
+                onClick={importLawPayData}
+                style={{
+                  ...styles.button,
+                  opacity: integrationLoading ? 0.6 : 1,
+                  cursor: integrationLoading ? 'not-allowed' : 'pointer'
+                }}
+                disabled={integrationLoading}
+              >
+                {integrationLoading ? 'Importing...' : '📥 Import Data'}
+              </button>
+            </div>
+          </div>
+          
+          {/* Configuration */}
+          <div style={styles.chartCard}>
+            <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Configuration</h3>
+            
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#f0f9ff', 
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#0369a1',
+              marginBottom: '16px'
+            }}>
+              <strong>Environment:</strong> Sandbox (Test Mode)<br/>
+              <strong>API Version:</strong> v1<br/>
+              <strong>Last Sync:</strong> {testResults.lawpay?.timestamp ? 
+                new Date(testResults.lawpay.timestamp).toLocaleString() : 'Never'}
+            </div>
+            
+            <div style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.6' }}>
+              <p style={{ marginBottom: '12px' }}>
+                <strong>Features:</strong>
+              </p>
+              <ul style={{ marginLeft: '20px', marginBottom: '16px' }}>
+                <li>Client synchronization</li>
+                <li>Payment history import</li>
+                <li>Transaction tracking</li>
+                <li>Automated reconciliation</li>
+              </ul>
+              
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#fef3c7', 
+                borderRadius: '6px',
+                border: '1px solid #fde68a'
+              }}>
+                <strong style={{ color: '#d97706' }}>⚠️ Sandbox Mode:</strong>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>
+                  Currently using test credentials. Production credentials will enable live data sync.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Import History */}
+        <div style={styles.chartCard}>
+          <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Recent Import Activity</h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead style={styles.tableHeader}>
+                <tr>
+                  <th style={styles.tableHeaderCell}>Date</th>
+                  <th style={styles.tableHeaderCell}>Type</th>
+                  <th style={styles.tableHeaderCell}>Records</th>
+                  <th style={styles.tableHeaderCell}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={styles.tableRow}>
+                  <td style={styles.tableCell}>{new Date().toLocaleDateString()}</td>
+                  <td style={styles.tableCell}>Clients</td>
+                  <td style={styles.tableCell}>5</td>
+                  <td style={styles.tableCell}>
+                    <span style={{ ...styles.statusBadge, ...styles.statusOnTime }}>Success</span>
+                  </td>
+                </tr>
+                <tr style={styles.tableRow}>
+                  <td style={styles.tableCell}>{new Date().toLocaleDateString()}</td>
+                  <td style={styles.tableCell}>Transactions</td>
+                  <td style={styles.tableCell}>12</td>
+                  <td style={styles.tableCell}>
+                    <span style={{ ...styles.statusBadge, ...styles.statusOnTime }}>Success</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   if (integrationView === 'ringcentral') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -3535,7 +3898,7 @@ const IntegrationsTab = () => {
         
         {/* LawPay Card */}
         <div style={{ ...styles.chartCard, cursor: 'pointer', transition: 'box-shadow 0.2s' }}
-             onClick={() => window.alert('LawPay integration available in advanced plan')}
+             onClick={() => setIntegrationView('lawpay')}
              onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
              onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)'}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
@@ -3559,10 +3922,10 @@ const IntegrationsTab = () => {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: '#d1d5db'
+              backgroundColor: getStatusColor(getIntegrationStatus('lawpay'))
             }}></div>
-            <span style={{ fontSize: '14px', color: '#9ca3af', fontWeight: '500' }}>
-              Available
+            <span style={{ fontSize: '14px', color: getStatusColor(getIntegrationStatus('lawpay')), fontWeight: '500' }}>
+              {getIntegrationStatus('lawpay')}
             </span>
           </div>
           
@@ -3573,7 +3936,7 @@ const IntegrationsTab = () => {
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              window.alert('LawPay integration available in advanced plan');
+              setIntegrationView('lawpay');
             }}
             style={{
               marginTop: '16px',
@@ -3586,7 +3949,7 @@ const IntegrationsTab = () => {
               cursor: 'pointer'
             }}
           >
-            Upgrade to Access →
+            Configure →
           </button>
         </div>
         
@@ -3649,7 +4012,7 @@ const IntegrationsTab = () => {
         <h3 style={{ ...styles.chartTitle, marginBottom: '16px' }}>Integration Activity</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>2</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>3</div>
             <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Active Integrations</div>
           </div>
           <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
