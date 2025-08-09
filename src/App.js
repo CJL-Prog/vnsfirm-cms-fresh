@@ -3042,7 +3042,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#374151' }}>Day Before Due</h4>
                 <button 
-                  onClick={() => openTemplateEditor('smsDayBefore')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('smsDayBefore');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -3056,7 +3060,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#374151' }}>Due Date</h4>
                 <button 
-                  onClick={() => openTemplateEditor('smsDueDate')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('smsDueDate');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -3070,7 +3078,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#dc2626' }}>3 Days Past Due</h4>
                 <button 
-                  onClick={() => openTemplateEditor('smsDay3')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('smsDay3');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -3084,7 +3096,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#dc2626' }}>5 Days Past Due</h4>
                 <button 
-                  onClick={() => openTemplateEditor('smsDay5')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('smsDay5');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -3098,7 +3114,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#dc2626' }}>7 Days Past Due (Final)</h4>
                 <button 
-                  onClick={() => openTemplateEditor('smsDay7')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('smsDay7');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -3117,7 +3137,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#dc2626' }}>3 Days Past Due Email</h4>
                 <button 
-                  onClick={() => openTemplateEditor('emailDay3')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('emailDay3');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -3136,7 +3160,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#dc2626' }}>5 Days Past Due Email</h4>
                 <button 
-                  onClick={() => openTemplateEditor('emailDay5')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('emailDay5');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -3155,7 +3183,11 @@ const CollectionsTab = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ margin: 0, color: '#dc2626' }}>7 Days Past Due Email (Final)</h4>
                 <button 
-                  onClick={() => openTemplateEditor('emailDay7')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openTemplateEditor('emailDay7');
+                  }}
                   style={{ ...styles.iconButton, color: '#3b82f6' }}
                   title="Edit Template"
                 >
@@ -4444,6 +4476,88 @@ const IntegrationsTab = () => {
           ))}
         </div>
       </nav>
+
+      {/* Message Modal - moved to app level */}
+      {showMessageModal && (
+        <div 
+          style={styles.modalOverlay}
+          onClick={() => setShowMessageModal(false)}
+        >
+          <div 
+            style={styles.modal} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>
+                Send {messageModalData.type} to {messageModalData.client?.name}
+              </h2>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Message Type</label>
+                <select
+                  value={messageModalData.type}
+                  onChange={(e) => setMessageModalData(prev => ({ ...prev, type: e.target.value }))}
+                  style={styles.formSelect}
+                >
+                  <option value="SMS">SMS</option>
+                  <option value="EMAIL">Email</option>
+                  <option value="CALL">Phone Call</option>
+                </select>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  {messageModalData.type === 'EMAIL' ? 'Email Message' : 
+                   messageModalData.type === 'SMS' ? 'SMS Message' : 'Call Notes'}
+                </label>
+                <textarea
+                  value={messageModalData.message}
+                  onChange={(e) => setMessageModalData(prev => ({ ...prev, message: e.target.value }))}
+                  style={{ ...styles.formInput, minHeight: '120px', resize: 'vertical' }}
+                  placeholder={`Enter your ${messageModalData.type.toLowerCase()} message...`}
+                />
+              </div>
+              
+              {messageModalData.client && (
+                <div style={{ 
+                  padding: '12px', 
+                  backgroundColor: '#f9fafb', 
+                  borderRadius: '6px',
+                  marginTop: '16px',
+                  fontSize: '14px',
+                  color: '#6b7280'
+                }}>
+                  <strong>Client:</strong> {messageModalData.client.name}<br/>
+                  {messageModalData.type === 'EMAIL' && messageModalData.client.email && <span><strong>Email:</strong> {messageModalData.client.email}<br/></span>}
+                  {(messageModalData.type === 'SMS' || messageModalData.type === 'CALL') && messageModalData.client.phone && <span><strong>Phone:</strong> {messageModalData.client.phone}<br/></span>}
+                  <strong>Amount Due:</strong> ${((messageModalData.client.total_balance || 0) - (messageModalData.client.paid_amount || 0)).toLocaleString()}
+                </div>
+              )}
+            </div>
+            
+            <div style={styles.modalFooter}>
+              <button
+                onClick={() => setShowMessageModal(false)}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendMessageFromModal}
+                style={{
+                  ...styles.button,
+                  backgroundColor: messageModalData.type === 'EMAIL' ? '#7c3aed' :
+                                 messageModalData.type === 'SMS' ? '#059669' : '#f59e0b'
+                }}
+              >
+                Send {messageModalData.type}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main style={styles.main}>
