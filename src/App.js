@@ -252,6 +252,75 @@ const App = () => {
             <p>No notes available</p>
           </div>
         )}
+
+      {/* Message Modal */}
+      {showMessageModal && (
+        <div 
+          style={styles.modalOverlay}
+          onClick={() => setShowMessageModal(false)}
+        >
+          <div 
+            style={styles.modal} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>
+                Send {messageModalData.type} to {messageModalData.client?.name}
+              </h2>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  {messageModalData.type === 'EMAIL' ? 'Email Message' : 
+                   messageModalData.type === 'SMS' ? 'SMS Message' : 'Call Notes'}
+                </label>
+                <textarea
+                  value={messageModalData.message}
+                  onChange={(e) => setMessageModalData(prev => ({ ...prev, message: e.target.value }))}
+                  style={{ ...styles.formInput, minHeight: '120px', resize: 'vertical' }}
+                  placeholder={`Enter your ${messageModalData.type.toLowerCase()} message...`}
+                />
+              </div>
+              
+              {messageModalData.client && (
+                <div style={{ 
+                  padding: '12px', 
+                  backgroundColor: '#f9fafb', 
+                  borderRadius: '6px',
+                  marginTop: '16px',
+                  fontSize: '14px',
+                  color: '#6b7280'
+                }}>
+                  <strong>Client:</strong> {messageModalData.client.name}<br/>
+                  {messageModalData.type === 'EMAIL' && <span><strong>Email:</strong> {messageModalData.client.email}<br/></span>}
+                  {(messageModalData.type === 'SMS' || messageModalData.type === 'CALL') && <span><strong>Phone:</strong> {messageModalData.client.phone}<br/></span>}
+                  <strong>Amount Due:</strong> ${((messageModalData.client.total_balance || 0) - (messageModalData.client.paid_amount || 0)).toLocaleString()}
+                </div>
+              )}
+            </div>
+            
+            <div style={styles.modalFooter}>
+              <button
+                onClick={() => setShowMessageModal(false)}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendMessageFromModal}
+                style={{
+                  ...styles.button,
+                  backgroundColor: messageModalData.type === 'EMAIL' ? '#7c3aed' :
+                                 messageModalData.type === 'SMS' ? '#059669' : '#f59e0b'
+                }}
+              >
+                Send {messageModalData.type}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     );
   });
@@ -401,6 +470,10 @@ const App = () => {
   const [showEditClientModal, setShowEditClientModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showClientProfile, setShowClientProfile] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showTemplateEditModal, setShowTemplateEditModal] = useState(false);
+  const [messageModalData, setMessageModalData] = useState({ type: '', client: null, message: '' });
+  const [editingTemplate, setEditingTemplate] = useState('');
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientProfileTab, setClientProfileTab] = useState('overview');
   const [clientNotes, setClientNotes] = useState([]);
@@ -712,6 +785,75 @@ const App = () => {
   });
 
   // Enhanced SMS/Email functions with RingCentral and Gmail integration
+  // Enhanced functions to open message modal before sending
+  const openMessageModal = (type, client) => {
+    const defaultMessage = getDefaultMessage(type, client);
+    setMessageModalData({ type, client, message: defaultMessage });
+    setShowMessageModal(true);
+  };
+
+  const getDefaultMessage = (type, client) => {
+    const amount = ((client.total_balance || 0) - (client.paid_amount || 0)).toLocaleString();
+    const firmName = client.law_firm || 'VNS Firm';
+    
+    if (type === 'SMS') {
+      return `Hi ${client.name}, this is ${firmName}. This is a payment reminder. Please contact us at (555) 123-4567.`;
+    } else if (type === 'EMAIL') {
+      return `Dear ${client.name},\n\nThis is a friendly reminder about your payment. Please contact us if you have any questions.\n\nBest regards,\n${firmName}`;
+    } else if (type === 'CALL') {
+      return `Call to discuss payment with ${client.name}`;
+    }
+    return '';
+  };
+
+  const sendMessageFromModal = async () => {
+    const { type, client, message } = messageModalData;
+    
+    try {
+      const newEffort = {
+        client_id: client.id,
+        type: type,
+        message: `${type} sent to ${client.name}: "${message}"`,
+        sent_date: new Date().toISOString().split('T')[0],
+        status: 'Sent',
+        created_by: user?.email
+      };
+
+      const { data, error } = await supabase
+        .from('collection_efforts')
+        .insert([newEffort])
+        .select();
+
+      if (error) throw error;
+
+      setCollectionEfforts(prev => [data[0], ...prev]);
+      await addNotification(`${type} sent to ${client.name}`, 'info');
+      
+      setShowMessageModal(false);
+      setMessageModalData({ type: '', client: null, message: '' });
+      
+    } catch (error) {
+      console.error(`Error sending ${type}:`, error);
+      await addNotification(`Error sending ${type}`, 'alert');
+    }
+  };
+
+  // Template editing functions
+  const openTemplateEditor = (templateKey) => {
+    setEditingTemplate(templateKey);
+    setShowTemplateEditModal(true);
+  };
+
+  const saveTemplate = (templateKey, newValue) => {
+    setTemplates(prev => ({
+      ...prev,
+      [templateKey]: newValue
+    }));
+    setShowTemplateEditModal(false);
+    setEditingTemplate('');
+    addNotification('Template updated successfully', 'info');
+  };
+
   const sendSMS = async (clientId) => {
     console.log('sendSMS called with clientId:', clientId);
     try {
@@ -2356,31 +2498,31 @@ const App = () => {
 
   const ClientsTab = () => {
     // Define action handlers within ClientsTab scope
-    const handleSendEmail = async (clientId, event) => {
+    const handleSendEmail = async (client, event) => {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
       }
-      console.log('handleSendEmail called with clientId:', clientId);
-      await sendEmail(clientId);
+      console.log('handleSendEmail called with client:', client.name);
+      openMessageModal('EMAIL', client);
     };
 
-    const handleSendSMS = async (clientId, event) => {
+    const handleSendSMS = async (client, event) => {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
       }
-      console.log('handleSendSMS called with clientId:', clientId);
-      await sendSMS(clientId);
+      console.log('handleSendSMS called with client:', client.name);
+      openMessageModal('SMS', client);
     };
 
-    const handleMakeCall = async (clientId, event) => {
+    const handleMakeCall = async (client, event) => {
       if (event) {
         event.preventDefault();
         event.stopPropagation();
       }
-      console.log('handleMakeCall called with clientId:', clientId);
-      await makeCall(clientId);
+      console.log('handleMakeCall called with client:', client.name);
+      openMessageModal('CALL', client);
     };
 
     return (
@@ -2757,7 +2899,7 @@ const App = () => {
                         <Edit3 style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
-                        onClick={(e) => handleSendEmail(client.id, e)} 
+                        onClick={(e) => handleSendEmail(client, e)} 
                         style={{...styles.iconButton, color: '#7c3aed'}} 
                         title="Send Email"
                         onMouseEnter={(e) => e.target.style.backgroundColor = '#f3e8ff'}
@@ -2766,7 +2908,7 @@ const App = () => {
                         <Mail style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
-                        onClick={(e) => handleSendSMS(client.id, e)} 
+                        onClick={(e) => handleSendSMS(client, e)} 
                         style={{...styles.iconButton, color: '#059669'}} 
                         title="Send SMS"
                         onMouseEnter={(e) => e.target.style.backgroundColor = '#f0fdf4'}
@@ -2775,7 +2917,7 @@ const App = () => {
                         <MessageSquare style={{ width: '16px', height: '16px' }} />
                       </button>
                       <button 
-                        onClick={(e) => handleMakeCall(client.id, e)} 
+                        onClick={(e) => handleMakeCall(client, e)} 
                         style={{...styles.iconButton, color: '#f59e0b'}} 
                         title="Make Call"
                         onMouseEnter={(e) => e.target.style.backgroundColor = '#fffbeb'}
@@ -2896,24 +3038,221 @@ const CollectionsTab = () => {
         <div style={styles.chartCard}>
           <h3 style={styles.chartTitle}>SMS Templates</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#374151' }}>Day Before Due</h4>
+            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#374151' }}>Day Before Due</h4>
+                <button 
+                  onClick={() => openTemplateEditor('smsDayBefore')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
               <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDayBefore}</p>
             </div>
-            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#374151' }}>Due Date</h4>
+            
+            <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#374151' }}>Due Date</h4>
+                <button 
+                  onClick={() => openTemplateEditor('smsDueDate')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
               <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDueDate}</p>
             </div>
-            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>3 Days Past Due</h4>
+            
+            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#dc2626' }}>3 Days Past Due</h4>
+                <button 
+                  onClick={() => openTemplateEditor('smsDay3')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
               <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDay3}</p>
             </div>
-            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>7 Days Past Due (Final)</h4>
+            
+            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#dc2626' }}>5 Days Past Due</h4>
+                <button 
+                  onClick={() => openTemplateEditor('smsDay5')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDay5}</p>
+            </div>
+            
+            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#dc2626' }}>7 Days Past Due (Final)</h4>
+                <button 
+                  onClick={() => openTemplateEditor('smsDay7')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
               <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{templates.smsDay7}</p>
             </div>
           </div>
         </div>
+
+        <div style={styles.chartCard}>
+          <h3 style={styles.chartTitle}>Email Templates</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#dc2626' }}>3 Days Past Due Email</h4>
+                <button 
+                  onClick={() => openTemplateEditor('emailDay3')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                Subject: {templates.emailDay3.subject}
+              </p>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', whiteSpace: 'pre-line' }}>
+                {templates.emailDay3.body.substring(0, 150)}...
+              </p>
+            </div>
+            
+            <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#dc2626' }}>5 Days Past Due Email</h4>
+                <button 
+                  onClick={() => openTemplateEditor('emailDay5')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                Subject: {templates.emailDay5.subject}
+              </p>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', whiteSpace: 'pre-line' }}>
+                {templates.emailDay5.body.substring(0, 150)}...
+              </p>
+            </div>
+            
+            <div style={{ padding: '16px', backgroundColor: '#fee2e2', borderRadius: '8px', position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#dc2626' }}>7 Days Past Due Email (Final)</h4>
+                <button 
+                  onClick={() => openTemplateEditor('emailDay7')}
+                  style={{ ...styles.iconButton, color: '#3b82f6' }}
+                  title="Edit Template"
+                >
+                  <Edit3 style={{ width: '16px', height: '16px' }} />
+                </button>
+              </div>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                Subject: {templates.emailDay7.subject}
+              </p>
+              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', whiteSpace: 'pre-line' }}>
+                {templates.emailDay7.body.substring(0, 150)}...
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Template Edit Modal */}
+        {showTemplateEditModal && (
+          <div 
+            style={styles.modalOverlay}
+            onClick={() => setShowTemplateEditModal(false)}
+          >
+            <div 
+              style={styles.modal} 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={styles.modalHeader}>
+                <h2 style={styles.modalTitle}>
+                  Edit Template: {editingTemplate.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                </h2>
+              </div>
+              
+              <div style={styles.modalBody}>
+                {typeof templates[editingTemplate] === 'string' ? (
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Message Template</label>
+                    <textarea
+                      defaultValue={templates[editingTemplate]}
+                      style={{ ...styles.formInput, minHeight: '120px', resize: 'vertical' }}
+                      id="template-editor"
+                    />
+                    <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>
+                      Available variables: {'{clientName}'}, {'{lawFirm}'}, {'{amount}'}, {'{dueDate}'}
+                    </small>
+                  </div>
+                ) : (
+                  <>
+                    <div style={styles.formGroup}>
+                      <label style={styles.formLabel}>Email Subject</label>
+                      <input
+                        type="text"
+                        defaultValue={templates[editingTemplate]?.subject || ''}
+                        style={styles.formInput}
+                        id="template-subject"
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.formLabel}>Email Body</label>
+                      <textarea
+                        defaultValue={templates[editingTemplate]?.body || ''}
+                        style={{ ...styles.formInput, minHeight: '200px', resize: 'vertical' }}
+                        id="template-body"
+                      />
+                      <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>
+                        Available variables: {'{clientName}'}, {'{lawFirm}'}, {'{amount}'}, {'{dueDate}'}
+                      </small>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <div style={styles.modalFooter}>
+                <button
+                  onClick={() => setShowTemplateEditModal(false)}
+                  style={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (typeof templates[editingTemplate] === 'string') {
+                      const newValue = document.getElementById('template-editor').value;
+                      saveTemplate(editingTemplate, newValue);
+                    } else {
+                      const subject = document.getElementById('template-subject').value;
+                      const body = document.getElementById('template-body').value;
+                      saveTemplate(editingTemplate, { subject, body });
+                    }
+                  }}
+                  style={styles.button}
+                >
+                  Save Template
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -3190,8 +3529,10 @@ const CollectionsTab = () => {
                               setCollectionType('SMS');
                               setShowCollectionModal(true);
                             }}
-                            style={styles.iconButton}
+                            style={{...styles.iconButton, color: '#059669'}}
                             title="Send SMS"
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f0fdf4'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                           >
                             <MessageSquare style={{ width: '16px', height: '16px' }} />
                           </button>
@@ -3201,8 +3542,10 @@ const CollectionsTab = () => {
                               setCollectionType('EMAIL');
                               setShowCollectionModal(true);
                             }}
-                            style={styles.iconButton}
+                            style={{...styles.iconButton, color: '#7c3aed'}}
                             title="Send Email"
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f3e8ff'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                           >
                             <Mail style={{ width: '16px', height: '16px' }} />
                           </button>
@@ -3212,8 +3555,10 @@ const CollectionsTab = () => {
                               setCollectionType('CALL');
                               setShowCollectionModal(true);
                             }}
-                            style={styles.iconButton}
+                            style={{...styles.iconButton, color: '#f59e0b'}}
                             title="Log Call"
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#fffbeb'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                           >
                             <Phone style={{ width: '16px', height: '16px' }} />
                           </button>
