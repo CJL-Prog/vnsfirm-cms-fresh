@@ -733,8 +733,7 @@ const App = () => {
         message: `SMS sent to ${client.name} at ${client.phone}: "${message}"`,
         sent_date: new Date().toISOString().split('T')[0],
         status: 'Sent',
-        created_by: user?.email,
-        platform: 'ringcentral'
+        created_by: user?.email
       };
 
       const { data, error } = await supabase
@@ -774,8 +773,7 @@ const App = () => {
         message: `Email sent to ${client.name} at ${client.email}: "${subject}"`,
         sent_date: new Date().toISOString().split('T')[0],
         status: 'Sent',
-        created_by: user?.email,
-        platform: 'gmail'
+        created_by: user?.email
       };
 
       const { data, error } = await supabase
@@ -811,8 +809,7 @@ const App = () => {
         message: `Call initiated to ${client.name} at ${client.phone}`,
         sent_date: new Date().toISOString().split('T')[0],
         status: 'Completed',
-        created_by: user?.email,
-        platform: 'ringcentral'
+        created_by: user?.email
       };
 
       const { data, error } = await supabase
@@ -2636,7 +2633,6 @@ const App = () => {
                             <div style={styles.historyDate}>
                               {new Date(effort.sent_date).toLocaleDateString()}
                               {effort.created_by && <span> • by {effort.created_by}</span>}
-                              {effort.platform && <span> • via {effort.platform}</span>}
                             </div>
                           </div>
                           <div style={{ 
@@ -2945,7 +2941,6 @@ const CollectionsTab = () => {
                   <th style={styles.tableHeaderCell}>Type</th>
                   <th style={styles.tableHeaderCell}>Message</th>
                   <th style={styles.tableHeaderCell}>Status</th>
-                  <th style={styles.tableHeaderCell}>Platform</th>
                   <th style={styles.tableHeaderCell}>Sent By</th>
                 </tr>
               </thead>
@@ -2982,7 +2977,6 @@ const CollectionsTab = () => {
                           {effort.status}
                         </span>
                       </td>
-                      <td style={styles.tableCell}>{effort.platform || 'System'}</td>
                       <td style={styles.tableCell}>{effort.created_by || 'System'}</td>
                     </tr>
                   );
