@@ -85,6 +85,40 @@ class ErrorBoundary extends React.Component {
 }
 
 /**
+ * AuthContent component - properly calls hooks at top level
+ */
+const AuthContent = () => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <h1 className="auth-title">VNS Firm</h1>
+          <p className="auth-subtitle">Client Management System</p>
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <AuthContainer />;
+  }
+  
+  return (
+    <ClientsProvider>
+      <NotificationsProvider>
+        <Layout />
+      </NotificationsProvider>
+    </ClientsProvider>
+  );
+};
+
+/**
  * Safe AppContent component with error handling
  */
 const AppContent = () => {
@@ -123,54 +157,9 @@ const AppContent = () => {
     );
   }
 
-  // Safe component with auth context
-  const SafeAuthContent = () => {
-    try {
-      const { user, loading } = useAuth();
-      
-      if (loading) {
-        return (
-          <div className="auth-container">
-            <div className="auth-card">
-              <h1 className="auth-title">VNS Firm</h1>
-              <p className="auth-subtitle">Client Management System</p>
-              <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p>Loading...</p>
-              </div>
-            </div>
-          </div>
-        );
-      }
-      
-      if (!user) {
-        return <AuthContainer />;
-      }
-      
-      return (
-        <ClientsProvider>
-          <NotificationsProvider>
-            <Layout />
-          </NotificationsProvider>
-        </ClientsProvider>
-      );
-    } catch (error) {
-      console.error('Auth error:', error);
-      return (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          <h1 style={{ color: '#dc2626' }}>VNS Firm</h1>
-          <p>Authentication system loading...</p>
-          <p style={{ color: '#666', fontSize: '14px' }}>
-            Setting up your secure environment
-          </p>
-        </div>
-      );
-    }
-  };
-
   return (
     <AuthProvider>
-      <SafeAuthContent />
+      <AuthContent />
     </AuthProvider>
   );
 };
