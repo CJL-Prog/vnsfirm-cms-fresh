@@ -1,32 +1,255 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+// supabase/functions/trello-integration/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-console.log("Hello from Functions!")
-
-Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { action, data } = await req.json()
+
+    switch (action) {
+      case 'test_connection':
+        return await testTrelloConnection()
+      case 'get_boards':
+        return await getBoards()
+      case 'get_lists':
+        return await getLists(data.boardId)
+      case 'create_card':
+        return await createCard(data, supabase)
+      default:
+        throw new Error('Invalid action')
+    }
+  } catch (error) {
+    console.error('Edge function error:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+  }
 })
 
-/* To invoke locally:
+async function testTrelloConnection() {
+  const apiKey = Deno.env.get('TRELLO_API_KEY')
+  const token = Deno.env.get('TRELLO_TOKEN')
+  
+  if (!apiKey || !token) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: 'Trello API credentials not configured',
+        error: 'Missing credentials'
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
 
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
+  try {
+    const response = await fetch(
+      `https://api.trello.com/1/members/me?key=${apiKey}&token=${token}`
+    )
 
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/trello-integration' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
+    if (!response.ok) {
+      throw new Error(`Trello API returned ${response.status}`)
+    }
 
-*/
+    const data = await response.json()
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Trello connection successful!',
+        username: data.username
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: `Trello connection failed: ${error.message}`,
+        error: error.message
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+}
+
+async function getBoards() {
+  const apiKey = Deno.env.get('TRELLO_API_KEY')
+  const token = Deno.env.get('TRELLO_TOKEN')
+  
+  if (!apiKey || !token) {
+    throw new Error('Trello API credentials not configured')
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${token}`
+    )
+
+    if (!response.ok) {
+      throw new Error(`Trello API returned ${response.status}`)
+    }
+
+    const boards = await response.json()
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        boards: boards.map(board => ({
+          id: board.id,
+          name: board.name,
+          url: board.url
+        }))
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  } catch (error) {
+    throw new Error(`Error fetching boards: ${error.message}`)
+  }
+}
+
+async function getLists(boardId) {
+  const apiKey = Deno.env.get('TRELLO_API_KEY')
+  const token = Deno.env.get('TRELLO_TOKEN')
+  
+  if (!apiKey || !token) {
+    throw new Error('Trello API credentials not configured')
+  }
+
+  if (!boardId) {
+    throw new Error('Board ID is required')
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.trello.com/1/boards/${boardId}/lists?key=${apiKey}&token=${token}`
+    )
+
+    if (!response.ok) {
+      throw new Error(`Trello API returned ${response.status}`)
+    }
+
+    const lists = await response.json()
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        lists: lists.map(list => ({
+          id: list.id,
+          name: list.name,
+          closed: list.closed
+        }))
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  } catch (error) {
+    throw new Error(`Error fetching lists: ${error.message}`)
+  }
+}
+
+async function createCard(data, supabase) {
+  const apiKey = Deno.env.get('TRELLO_API_KEY')
+  const token = Deno.env.get('TRELLO_TOKEN')
+  
+  if (!apiKey || !token) {
+    throw new Error('Trello API credentials not configured')
+  }
+
+  const { listId, name, description, clientId } = data
+  
+  if (!listId || !name) {
+    throw new Error('List ID and card name are required')
+  }
+
+  try {
+    // Create card in Trello
+    const params = new URLSearchParams({
+      idList: listId,
+      name,
+      desc: description || '',
+      key: apiKey,
+      token: token
+    })
+
+    const response = await fetch(
+      `https://api.trello.com/1/cards?${params.toString()}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Trello API returned ${response.status}: ${errorText}`)
+    }
+
+    const card = await response.json()
+
+    // Log the activity in Supabase if clientId is provided
+    if (clientId) {
+      await supabase
+        .from('collection_efforts')
+        .insert([{
+          client_id: clientId,
+          type: 'TRELLO',
+          message: `Created Trello card: "${name}"`,
+          sent_date: new Date().toISOString().split('T')[0],
+          status: 'Created',
+          created_by: 'system'
+        }])
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        card: {
+          id: card.id,
+          name: card.name,
+          url: card.url,
+          shortUrl: card.shortUrl
+        }
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  } catch (error) {
+    throw new Error(`Error creating card: ${error.message}`)
+  }
+}

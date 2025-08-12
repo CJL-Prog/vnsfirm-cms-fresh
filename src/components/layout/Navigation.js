@@ -3,12 +3,16 @@ import {
   TrendingUp, 
   Users, 
   AlertTriangle, 
-  Settings 
+  Settings,
+  Zap
 } from 'lucide-react';
 
 /**
  * Navigation component
  * Main application navigation with tabs
+ * 
+ * @param {string} activeTab - Currently active tab
+ * @param {Function} setActiveTab - Function to change the active tab
  */
 const Navigation = ({ activeTab, setActiveTab }) => {
   // Navigation items configuration
@@ -16,7 +20,7 @@ const Navigation = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', name: 'Dashboard', icon: TrendingUp },
     { id: 'clients', name: 'Clients', icon: Users },
     { id: 'collections', name: 'Collections', icon: AlertTriangle },
-    { id: 'integrations', name: 'Integrations', icon: Settings },
+    { id: 'integrations', name: 'Integrations', icon: Zap },
     { id: 'settings', name: 'Settings', icon: Settings }
   ];
 

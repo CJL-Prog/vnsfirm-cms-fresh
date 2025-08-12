@@ -1,43 +1,48 @@
-import React from 'react';
-import { 
-  TrendingUp, 
-  Users, 
-  AlertTriangle, 
-  Settings 
-} from 'lucide-react';
+import React, { useState } from 'react';
+import Header from './Header';
+import Navigation from './Navigation';
+import DashboardTab from '../dashboard/DashboardTab';
+import ClientsTab from '../clients/ClientsTab';
+import CollectionsTab from '../collections/CollectionsTab';
+import IntegrationsTab from '../integrations/IntegrationsTab';
+import SettingsTab from '../Settings/SettingsTab';
 
 /**
- * Navigation component
- * Main application navigation with tabs
+ * Layout component
+ * Main application layout that manages tab state and renders content
  */
-const Navigation = ({ activeTab, setActiveTab }) => {
-  // Navigation items configuration
-  const navItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: TrendingUp },
-    { id: 'clients', name: 'Clients', icon: Users },
-    { id: 'collections', name: 'Collections', icon: AlertTriangle },
-    { id: 'integrations', name: 'Integrations', icon: Settings },
-    { id: 'settings', name: 'Settings', icon: Settings }
-  ];
+const Layout = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Render the appropriate tab content
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardTab />;
+      case 'clients':
+        return <ClientsTab />;
+      case 'collections':
+        return <CollectionsTab />;
+      case 'integrations':
+        return <IntegrationsTab />;
+      case 'settings':
+        return <SettingsTab />;
+      default:
+        return <DashboardTab />;
+    }
+  };
 
   return (
-    <nav className="nav">
-      <div className="nav-content">
-        {navItems.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`nav-button ${
-              activeTab === tab.id ? 'active-nav-button' : 'inactive-nav-button'
-            }`}
-          >
-            <tab.icon style={{ width: '16px', height: '16px' }} />
-            {tab.name}
-          </button>
-        ))}
-      </div>
-    </nav>
+    <div className="app-layout">
+      <Header />
+      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <main className="main">
+        <div className="content">
+          {renderTabContent()}
+        </div>
+      </main>
+    </div>
   );
 };
 
-export default Navigation;
+export default Layout;

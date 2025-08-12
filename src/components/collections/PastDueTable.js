@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Mail, MessageSquare, Phone, User } from 'lucide-react';
+import { Eye, Mail, MessageSquare, Phone, User, TrendingUp } from 'lucide-react';
 
 /**
  * PastDueTable component
