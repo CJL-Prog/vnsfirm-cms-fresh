@@ -79,7 +79,7 @@ const Layout = () => {
     <div className="app-layout">
       <Header />
       <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="main">
+      <main className="main" id="main-content">
         <div className="content">
           {renderTabContent()}
         </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Download } from 'lucide-react';
+import { CSVLink } from 'react-csv';
 import { useClients } from '../../contexts/ClientsContext';
 import { useNotifications } from '../../contexts/NotificationsContext';
 import ClientTable from './ClientTable';
@@ -39,6 +40,20 @@ const ClientsTab = () => {
   
   // Message modal data
   const [messageType, setMessageType] = useState('EMAIL');
+  
+  // Prepare data for CSV export
+  const prepareExportData = () => {
+    return filteredClients.map(client => ({
+      Name: client.name,
+      Email: client.email,
+      Phone: client.phone,
+      'Law Firm': client.law_firm,
+      'Total Balance': client.total_balance,
+      'Paid Amount': client.paid_amount,
+      'Next Due Date': client.next_due_date,
+      Status: client.status
+    }));
+  };
   
   // Handle client actions
   const handleViewClient = async (client) => {
@@ -97,17 +112,33 @@ const ClientsTab = () => {
     setSearchTerm(e.target.value);
   };
   
+  // Handle successful export
+  const handleExportSuccess = () => {
+    addNotification('Clients exported successfully', NotificationType.SUCCESS);
+  };
+  
   return (
     <div className="clients-container">
       <div className="header-with-actions">
         <h2 className="section-title">Client Management</h2>
-        <button 
-          onClick={() => setShowAddModal(true)} 
-          className="button"
-        >
-          <Plus size={16} />
-          Add Client
-        </button>
+        <div className="button-group">
+          <CSVLink 
+            data={prepareExportData()} 
+            filename={`clients-export-${new Date().toISOString()}.csv`}
+            className="button button-outline"
+            onClick={handleExportSuccess}
+          >
+            <Download size={16} />
+            Export to CSV
+          </CSVLink>
+          <button 
+            onClick={() => setShowAddModal(true)} 
+            className="button"
+          >
+            <Plus size={16} />
+            Add Client
+          </button>
+        </div>
       </div>
       
       <div className="search-container card">
