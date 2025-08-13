@@ -28,70 +28,97 @@ import {
  * Complete settings management system for the law firm CRM
  */
 const SettingsTab = () => {
-  const [activeSection, setActiveSection] = useState('overview');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // Form state for different sections
-  const [profileData, setProfileData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@vnslawfirm.com',
-    phone: '(555) 123-4567',
-    title: 'Managing Partner',
-    avatar: null
+  // Single state object containing all settings
+  const [state, setState] = useState({
+    // UI state
+    activeSection: 'overview',
+    showPassword: false,
+    loading: false,
+    
+    // User profile settings
+    profile: {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@vnslawfirm.com',
+      phone: '(555) 123-4567',
+      title: 'Managing Partner',
+      avatar: null
+    },
+    
+    // Firm settings
+    firm: {
+      firmName: 'VNS Law Firm',
+      address: '123 Legal Street',
+      city: 'Los Angeles',
+      state: 'CA',
+      zipCode: '90210',
+      phone: '(555) 987-6543',
+      website: 'https://vnslawfirm.com',
+      taxId: '12-3456789'
+    },
+    
+    // Security settings
+    security: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+      twoFactorEnabled: true,
+      sessionTimeout: 480,
+      loginNotifications: true
+    },
+    
+    // Notification preferences
+    notifications: {
+      emailNotifications: true,
+      smsNotifications: true,
+      pushNotifications: false,
+      paymentReminders: true,
+      clientUpdates: true,
+      systemAlerts: true,
+      weeklyReports: true,
+      marketingEmails: false
+    },
+    
+    // System preferences
+    system: {
+      timezone: 'America/Los_Angeles',
+      dateFormat: 'MM/DD/YYYY',
+      timeFormat: '12',
+      currency: 'USD',
+      language: 'English',
+      autoBackup: true,
+      backupFrequency: 'daily'
+    }
   });
-
-  const [firmData, setFirmData] = useState({
-    firmName: 'VNS Law Firm',
-    address: '123 Legal Street',
-    city: 'Los Angeles',
-    state: 'CA',
-    zipCode: '90210',
-    phone: '(555) 987-6543',
-    website: 'https://vnslawfirm.com',
-    taxId: '12-3456789'
-  });
-
-  const [securityData, setSecurityData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    twoFactorEnabled: true,
-    sessionTimeout: 480,
-    loginNotifications: true
-  });
-
-  const [notificationData, setNotificationData] = useState({
-    emailNotifications: true,
-    smsNotifications: true,
-    pushNotifications: false,
-    paymentReminders: true,
-    clientUpdates: true,
-    systemAlerts: true,
-    weeklyReports: true,
-    marketingEmails: false
-  });
-
-  const [systemData, setSystemData] = useState({
-    timezone: 'America/Los_Angeles',
-    dateFormat: 'MM/DD/YYYY',
-    timeFormat: '12',
-    currency: 'USD',
-    language: 'English',
-    autoBackup: true,
-    backupFrequency: 'daily'
-  });
+  
+  // Helper function to update state
+  const updateState = (updates) => {
+    setState(prevState => ({
+      ...prevState,
+      ...updates
+    }));
+  };
+  
+  // Helper function to update nested state objects
+  const updateNestedState = (section, updates) => {
+    setState(prevState => ({
+      ...prevState,
+      [section]: {
+        ...prevState[section],
+        ...updates
+      }
+    }));
+  };
 
   const handleSave = async (section) => {
-    setLoading(true);
+    updateState({ loading: true });
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       alert(`${section} settings saved successfully!`);
     } catch (error) {
       alert(`Error saving ${section} settings`);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
@@ -112,7 +139,7 @@ const SettingsTab = () => {
     <div className="container">
       <div className="mb-lg">
         <button 
-          onClick={() => setActiveSection('overview')}
+          onClick={() => updateState({ activeSection: 'overview' })}
           className="button button-outline mb-lg"
         >
           <ChevronLeft size={16} />
@@ -140,7 +167,7 @@ const SettingsTab = () => {
                 fontWeight: '600',
                 margin: '0 auto'
               }}>
-                {profileData.firstName[0]}{profileData.lastName[0]}
+                {state.profile.firstName[0]}{state.profile.lastName[0]}
               </div>
             </div>
             <button className="button button-outline">
@@ -158,8 +185,8 @@ const SettingsTab = () => {
                 <label className="form-label">First Name</label>
                 <input 
                   type="text"
-                  value={profileData.firstName}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                  value={state.profile.firstName}
+                  onChange={(e) => updateNestedState('profile', { firstName: e.target.value })}
                   className="form-input"
                 />
               </div>
@@ -168,8 +195,8 @@ const SettingsTab = () => {
                 <label className="form-label">Last Name</label>
                 <input 
                   type="text"
-                  value={profileData.lastName}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                  value={state.profile.lastName}
+                  onChange={(e) => updateNestedState('profile', { lastName: e.target.value })}
                   className="form-input"
                 />
               </div>
@@ -179,8 +206,8 @@ const SettingsTab = () => {
               <label className="form-label">Email Address</label>
               <input 
                 type="email"
-                value={profileData.email}
-                onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
+                value={state.profile.email}
+                onChange={(e) => updateNestedState('profile', { email: e.target.value })}
                 className="form-input"
               />
             </div>
@@ -189,8 +216,8 @@ const SettingsTab = () => {
               <label className="form-label">Phone Number</label>
               <input 
                 type="tel"
-                value={profileData.phone}
-                onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                value={state.profile.phone}
+                onChange={(e) => updateNestedState('profile', { phone: e.target.value })}
                 className="form-input"
               />
             </div>
@@ -199,19 +226,19 @@ const SettingsTab = () => {
               <label className="form-label">Job Title</label>
               <input 
                 type="text"
-                value={profileData.title}
-                onChange={(e) => setProfileData(prev => ({ ...prev, title: e.target.value }))}
+                value={state.profile.title}
+                onChange={(e) => updateNestedState('profile', { title: e.target.value })}
                 className="form-input"
               />
             </div>
 
             <button 
               onClick={() => handleSave('Profile')}
-              disabled={loading}
+              disabled={state.loading}
               className="button button-success"
             >
               <Save size={16} />
-              {loading ? 'Saving...' : 'Save Profile'}
+              {state.loading ? 'Saving...' : 'Save Profile'}
             </button>
           </div>
         </div>
@@ -224,7 +251,7 @@ const SettingsTab = () => {
     <div className="container">
       <div className="mb-lg">
         <button 
-          onClick={() => setActiveSection('overview')}
+          onClick={() => updateState({ activeSection: 'overview' })}
           className="button button-outline mb-lg"
         >
           <ChevronLeft size={16} />
@@ -243,8 +270,8 @@ const SettingsTab = () => {
             <label className="form-label">Firm Name</label>
             <input 
               type="text"
-              value={firmData.firmName}
-              onChange={(e) => setFirmData(prev => ({ ...prev, firmName: e.target.value }))}
+              value={state.firm.firmName}
+              onChange={(e) => updateNestedState('firm', { firmName: e.target.value })}
               className="form-input"
             />
           </div>
@@ -253,8 +280,8 @@ const SettingsTab = () => {
             <label className="form-label">Address</label>
             <input 
               type="text"
-              value={firmData.address}
-              onChange={(e) => setFirmData(prev => ({ ...prev, address: e.target.value }))}
+              value={state.firm.address}
+              onChange={(e) => updateNestedState('firm', { address: e.target.value })}
               className="form-input"
             />
           </div>
@@ -264,8 +291,8 @@ const SettingsTab = () => {
               <label className="form-label">City</label>
               <input 
                 type="text"
-                value={firmData.city}
-                onChange={(e) => setFirmData(prev => ({ ...prev, city: e.target.value }))}
+                value={state.firm.city}
+                onChange={(e) => updateNestedState('firm', { city: e.target.value })}
                 className="form-input"
               />
             </div>
@@ -273,8 +300,8 @@ const SettingsTab = () => {
             <div className="form-group">
               <label className="form-label">State</label>
               <select 
-                value={firmData.state}
-                onChange={(e) => setFirmData(prev => ({ ...prev, state: e.target.value }))}
+                value={state.firm.state}
+                onChange={(e) => updateNestedState('firm', { state: e.target.value })}
                 className="form-select"
               >
                 <option value="CA">CA</option>
@@ -289,8 +316,8 @@ const SettingsTab = () => {
               <label className="form-label">Zip Code</label>
               <input 
                 type="text"
-                value={firmData.zipCode}
-                onChange={(e) => setFirmData(prev => ({ ...prev, zipCode: e.target.value }))}
+                value={state.firm.zipCode}
+                onChange={(e) => updateNestedState('firm', { zipCode: e.target.value })}
                 className="form-input"
               />
             </div>
@@ -305,8 +332,8 @@ const SettingsTab = () => {
             <label className="form-label">Phone Number</label>
             <input 
               type="tel"
-              value={firmData.phone}
-              onChange={(e) => setFirmData(prev => ({ ...prev, phone: e.target.value }))}
+              value={state.firm.phone}
+              onChange={(e) => updateNestedState('firm', { phone: e.target.value })}
               className="form-input"
             />
           </div>
@@ -315,8 +342,8 @@ const SettingsTab = () => {
             <label className="form-label">Website</label>
             <input 
               type="url"
-              value={firmData.website}
-              onChange={(e) => setFirmData(prev => ({ ...prev, website: e.target.value }))}
+              value={state.firm.website}
+              onChange={(e) => updateNestedState('firm', { website: e.target.value })}
               className="form-input"
             />
           </div>
@@ -325,19 +352,19 @@ const SettingsTab = () => {
             <label className="form-label">Tax ID</label>
             <input 
               type="text"
-              value={firmData.taxId}
-              onChange={(e) => setFirmData(prev => ({ ...prev, taxId: e.target.value }))}
+              value={state.firm.taxId}
+              onChange={(e) => updateNestedState('firm', { taxId: e.target.value })}
               className="form-input"
             />
           </div>
 
           <button 
             onClick={() => handleSave('Firm')}
-            disabled={loading}
+            disabled={state.loading}
             className="button button-success"
           >
             <Save size={16} />
-            {loading ? 'Saving...' : 'Save Firm Settings'}
+            {state.loading ? 'Saving...' : 'Save Firm Settings'}
           </button>
         </div>
       </div>
@@ -362,7 +389,7 @@ const SettingsTab = () => {
                 color: 'var(--color-text-secondary)', 
                 margin: 0 
               }}>
-                {location.status} • {location.clients} clients
+                {location.status} â€¢ {location.clients} clients
               </p>
             </div>
           ))}
@@ -376,7 +403,7 @@ const SettingsTab = () => {
     <div className="container">
       <div className="mb-lg">
         <button 
-          onClick={() => setActiveSection('overview')}
+          onClick={() => updateState({ activeSection: 'overview' })}
           className="button button-outline mb-lg"
         >
           <ChevronLeft size={16} />
@@ -395,15 +422,15 @@ const SettingsTab = () => {
             <label className="form-label">Current Password</label>
             <div style={{ position: 'relative' }}>
               <input 
-                type={showPassword ? 'text' : 'password'}
-                value={securityData.currentPassword}
-                onChange={(e) => setSecurityData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                type={state.showPassword ? 'text' : 'password'}
+                value={state.security.currentPassword}
+                onChange={(e) => updateNestedState('security', { currentPassword: e.target.value })}
                 className="form-input"
                 style={{ paddingRight: '40px' }}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => updateState({ showPassword: !state.showPassword })}
                 style={{
                   position: 'absolute',
                   right: '12px',
@@ -415,7 +442,7 @@ const SettingsTab = () => {
                   color: 'var(--color-text-secondary)'
                 }}
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {state.showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
@@ -424,8 +451,8 @@ const SettingsTab = () => {
             <label className="form-label">New Password</label>
             <input 
               type="password"
-              value={securityData.newPassword}
-              onChange={(e) => setSecurityData(prev => ({ ...prev, newPassword: e.target.value }))}
+              value={state.security.newPassword}
+              onChange={(e) => updateNestedState('security', { newPassword: e.target.value })}
               className="form-input"
             />
           </div>
@@ -434,19 +461,19 @@ const SettingsTab = () => {
             <label className="form-label">Confirm New Password</label>
             <input 
               type="password"
-              value={securityData.confirmPassword}
-              onChange={(e) => setSecurityData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              value={state.security.confirmPassword}
+              onChange={(e) => updateNestedState('security', { confirmPassword: e.target.value })}
               className="form-input"
             />
           </div>
 
           <button 
             onClick={() => handleSave('Security')}
-            disabled={loading}
+            disabled={state.loading}
             className="button button-success"
           >
             <Lock size={16} />
-            {loading ? 'Updating...' : 'Update Password'}
+            {state.loading ? 'Updating...' : 'Update Password'}
           </button>
         </div>
 
@@ -459,8 +486,8 @@ const SettingsTab = () => {
               <span style={{ fontSize: 'var(--font-sm)', fontWeight: '500' }}>
                 Two-Factor Authentication
               </span>
-              <span className={`badge ${securityData.twoFactorEnabled ? 'badge-success' : 'badge-warning'}`}>
-                {securityData.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+              <span className={`badge ${state.security.twoFactorEnabled ? 'badge-success' : 'badge-warning'}`}>
+                {state.security.twoFactorEnabled ? 'Enabled' : 'Disabled'}
               </span>
             </div>
             <p style={{ 
@@ -470,17 +497,20 @@ const SettingsTab = () => {
             }}>
               Add an extra layer of security to your account
             </p>
-            <button className="button button-outline">
+            <button 
+              className="button button-outline"
+              onClick={() => updateNestedState('security', { twoFactorEnabled: !state.security.twoFactorEnabled })}
+            >
               <Shield size={16} />
-              {securityData.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+              {state.security.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
             </button>
           </div>
 
           <div className="form-group">
             <label className="form-label">Session Timeout</label>
             <select 
-              value={securityData.sessionTimeout}
-              onChange={(e) => setSecurityData(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
+              value={state.security.sessionTimeout}
+              onChange={(e) => updateNestedState('security', { sessionTimeout: parseInt(e.target.value) })}
               className="form-select"
             >
               <option value={30}>30 minutes</option>
@@ -500,7 +530,7 @@ const SettingsTab = () => {
     <div className="container">
       <div className="mb-lg">
         <button 
-          onClick={() => setActiveSection('overview')}
+          onClick={() => updateState({ activeSection: 'overview' })}
           className="button button-outline mb-lg"
         >
           <ChevronLeft size={16} />
@@ -525,8 +555,8 @@ const SettingsTab = () => {
             }}>
               <input 
                 type="checkbox"
-                checked={notificationData.emailNotifications}
-                onChange={(e) => setNotificationData(prev => ({ ...prev, emailNotifications: e.target.checked }))}
+                checked={state.notifications.emailNotifications}
+                onChange={(e) => updateNestedState('notifications', { emailNotifications: e.target.checked })}
               />
               <Mail size={16} style={{ color: 'var(--color-secondary)' }} />
               <span style={{ fontSize: 'var(--font-sm)' }}>Email Notifications</span>
@@ -543,8 +573,8 @@ const SettingsTab = () => {
             }}>
               <input 
                 type="checkbox"
-                checked={notificationData.smsNotifications}
-                onChange={(e) => setNotificationData(prev => ({ ...prev, smsNotifications: e.target.checked }))}
+                checked={state.notifications.smsNotifications}
+                onChange={(e) => updateNestedState('notifications', { smsNotifications: e.target.checked })}
               />
               <Phone size={16} style={{ color: 'var(--color-success)' }} />
               <span style={{ fontSize: 'var(--font-sm)' }}>SMS Notifications</span>
@@ -561,8 +591,8 @@ const SettingsTab = () => {
             }}>
               <input 
                 type="checkbox"
-                checked={notificationData.pushNotifications}
-                onChange={(e) => setNotificationData(prev => ({ ...prev, pushNotifications: e.target.checked }))}
+                checked={state.notifications.pushNotifications}
+                onChange={(e) => updateNestedState('notifications', { pushNotifications: e.target.checked })}
               />
               <Bell size={16} style={{ color: 'var(--color-warning)' }} />
               <span style={{ fontSize: 'var(--font-sm)' }}>Push Notifications</span>
@@ -591,8 +621,8 @@ const SettingsTab = () => {
               }}>
                 <input 
                   type="checkbox"
-                  checked={notificationData[key]}
-                  onChange={(e) => setNotificationData(prev => ({ ...prev, [key]: e.target.checked }))}
+                  checked={state.notifications[key]}
+                  onChange={(e) => updateNestedState('notifications', { [key]: e.target.checked })}
                 />
                 <Icon size={16} style={{ color: 'var(--color-text-secondary)' }} />
                 <span style={{ fontSize: 'var(--font-sm)' }}>{label}</span>
@@ -605,11 +635,11 @@ const SettingsTab = () => {
       <div className="mt-lg">
         <button 
           onClick={() => handleSave('Notifications')}
-          disabled={loading}
+          disabled={state.loading}
           className="button button-success"
         >
           <Save size={16} />
-          {loading ? 'Saving...' : 'Save Notification Settings'}
+          {state.loading ? 'Saving...' : 'Save Notification Settings'}
         </button>
       </div>
     </div>
@@ -620,7 +650,7 @@ const SettingsTab = () => {
     <div className="container">
       <div className="mb-lg">
         <button 
-          onClick={() => setActiveSection('overview')}
+          onClick={() => updateState({ activeSection: 'overview' })}
           className="button button-outline mb-lg"
         >
           <ChevronLeft size={16} />
@@ -645,8 +675,8 @@ const SettingsTab = () => {
               Timezone
             </label>
             <select 
-              value={systemData.timezone}
-              onChange={(e) => setSystemData(prev => ({ ...prev, timezone: e.target.value }))}
+              value={state.system.timezone}
+              onChange={(e) => updateNestedState('system', { timezone: e.target.value })}
               className="form-select"
             >
               <option value="America/Los_Angeles">Pacific Time (PT)</option>
@@ -666,8 +696,8 @@ const SettingsTab = () => {
               Date Format
             </label>
             <select 
-              value={systemData.dateFormat}
-              onChange={(e) => setSystemData(prev => ({ ...prev, dateFormat: e.target.value }))}
+              value={state.system.dateFormat}
+              onChange={(e) => updateNestedState('system', { dateFormat: e.target.value })}
               className="form-select"
             >
               <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
@@ -679,8 +709,8 @@ const SettingsTab = () => {
           <div className="form-group">
             <label className="form-label">Currency</label>
             <select 
-              value={systemData.currency}
-              onChange={(e) => setSystemData(prev => ({ ...prev, currency: e.target.value }))}
+              value={state.system.currency}
+              onChange={(e) => updateNestedState('system', { currency: e.target.value })}
               className="form-select"
             >
               <option value="USD">USD - US Dollar</option>
@@ -700,18 +730,18 @@ const SettingsTab = () => {
               <span style={{ fontSize: 'var(--font-sm)', fontWeight: '500' }}>
                 Automatic Backup
               </span>
-              <span className={`badge ${systemData.autoBackup ? 'badge-success' : 'badge-warning'}`}>
-                {systemData.autoBackup ? 'Enabled' : 'Disabled'}
+              <span className={`badge ${state.system.autoBackup ? 'badge-success' : 'badge-warning'}`}>
+                {state.system.autoBackup ? 'Enabled' : 'Disabled'}
               </span>
             </div>
             
             <div className="form-group">
               <label className="form-label">Backup Frequency</label>
               <select 
-                value={systemData.backupFrequency}
-                onChange={(e) => setSystemData(prev => ({ ...prev, backupFrequency: e.target.value }))}
+                value={state.system.backupFrequency}
+                onChange={(e) => updateNestedState('system', { backupFrequency: e.target.value })}
                 className="form-select"
-                disabled={!systemData.autoBackup}
+                disabled={!state.system.autoBackup}
               >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
@@ -727,8 +757,8 @@ const SettingsTab = () => {
             }}>
               <input 
                 type="checkbox"
-                checked={systemData.autoBackup}
-                onChange={(e) => setSystemData(prev => ({ ...prev, autoBackup: e.target.checked }))}
+                checked={state.system.autoBackup}
+                onChange={(e) => updateNestedState('system', { autoBackup: e.target.checked })}
               />
               <span style={{ fontSize: 'var(--font-sm)' }}>
                 Enable automatic backups
@@ -753,11 +783,11 @@ const SettingsTab = () => {
       <div className="mt-lg">
         <button 
           onClick={() => handleSave('System')}
-          disabled={loading}
+          disabled={state.loading}
           className="button button-success"
         >
           <Save size={16} />
-          {loading ? 'Saving...' : 'Save System Settings'}
+          {state.loading ? 'Saving...' : 'Save System Settings'}
         </button>
       </div>
     </div>
@@ -765,7 +795,7 @@ const SettingsTab = () => {
 
   // Main render logic
   const renderContent = () => {
-    switch (activeSection) {
+    switch (state.activeSection) {
       case 'profile':
         return renderProfileSection();
       case 'firm':
@@ -780,7 +810,7 @@ const SettingsTab = () => {
         return (
           <div className="container">
             <button 
-              onClick={() => setActiveSection('overview')}
+              onClick={() => updateState({ activeSection: 'overview' })}
               className="button button-outline mb-lg"
             >
               <ChevronLeft size={16} />
@@ -798,7 +828,7 @@ const SettingsTab = () => {
         return (
           <div className="container">
             <button 
-              onClick={() => setActiveSection('overview')}
+              onClick={() => updateState({ activeSection: 'overview' })}
               className="button button-outline mb-lg"
             >
               <ChevronLeft size={16} />
@@ -816,7 +846,7 @@ const SettingsTab = () => {
         return (
           <div className="container">
             <button 
-              onClick={() => setActiveSection('overview')}
+              onClick={() => updateState({ activeSection: 'overview' })}
               className="button button-outline mb-lg"
             >
               <ChevronLeft size={16} />
@@ -859,7 +889,7 @@ const SettingsTab = () => {
   };
 
   // If a specific section is selected, show its detail view
-  if (activeSection !== 'overview') {
+  if (state.activeSection !== 'overview') {
     return renderContent();
   }
 
@@ -878,7 +908,7 @@ const SettingsTab = () => {
         <div 
           className="card" 
           style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-          onClick={() => setActiveSection('profile')}
+          onClick={() => updateState({ activeSection: 'profile' })}
           onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
         >
@@ -914,7 +944,7 @@ const SettingsTab = () => {
         <div 
           className="card" 
           style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-          onClick={() => setActiveSection('firm')}
+          onClick={() => updateState({ activeSection: 'firm' })}
           onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
         >
@@ -950,7 +980,7 @@ const SettingsTab = () => {
         <div 
           className="card" 
           style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-          onClick={() => setActiveSection('security')}
+          onClick={() => updateState({ activeSection: 'security' })}
           onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
         >
@@ -986,7 +1016,7 @@ const SettingsTab = () => {
         <div 
           className="card" 
           style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-          onClick={() => setActiveSection('notifications')}
+          onClick={() => updateState({ activeSection: 'notifications' })}
           onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
         >
@@ -1022,7 +1052,7 @@ const SettingsTab = () => {
         <div 
           className="card" 
           style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-          onClick={() => setActiveSection('system')}
+          onClick={() => updateState({ activeSection: 'system' })}
           onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
         >
@@ -1058,7 +1088,7 @@ const SettingsTab = () => {
         <div 
           className="card" 
           style={{ cursor: 'pointer', transition: 'transform 0.2s', opacity: 0.6 }}
-          onClick={() => setActiveSection('users')}
+          onClick={() => updateState({ activeSection: 'users' })}
           onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
         >
@@ -1097,7 +1127,7 @@ const SettingsTab = () => {
         
         <div className="grid grid-cols-1 grid-cols-4 gap-md">
           <button 
-            onClick={() => setActiveSection('security')}
+            onClick={() => updateState({ activeSection: 'security' })}
             className="button button-outline"
           >
             <Shield size={16} />
@@ -1105,7 +1135,7 @@ const SettingsTab = () => {
           </button>
           
           <button 
-            onClick={() => setActiveSection('system')}
+            onClick={() => updateState({ activeSection: 'system' })}
             className="button button-outline"
           >
             <Database size={16} />
@@ -1113,7 +1143,7 @@ const SettingsTab = () => {
           </button>
           
           <button 
-            onClick={() => setActiveSection('notifications')}
+            onClick={() => updateState({ activeSection: 'notifications' })}
             className="button button-outline"
           >
             <Bell size={16} />
@@ -1121,7 +1151,7 @@ const SettingsTab = () => {
           </button>
           
           <button 
-            onClick={() => setActiveSection('data')}
+            onClick={() => updateState({ activeSection: 'data' })}
             className="button button-outline"
           >
             <CreditCard size={16} />

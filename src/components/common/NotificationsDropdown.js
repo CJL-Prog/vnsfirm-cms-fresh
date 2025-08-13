@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Bell } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationsContext';
 
@@ -153,4 +153,4 @@ const NotificationsDropdown = () => {
   );
 };
 
-export default NotificationsDropdown;
+export default memo(NotificationsDropdown);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useClients } from '../../contexts/ClientsContext';
 import { useNotifications } from '../../contexts/NotificationsContext';
+import * as Yup from 'yup';
 
 /**
  * ClientForm component
@@ -15,7 +16,7 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
   const { addNotification, NotificationType } = useNotifications();
   
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   
   // Initialize form data
   const [formData, setFormData] = useState({
@@ -31,49 +32,125 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
     third_party_payor: initialData.third_party_payor || '',
     retainer_signed: initialData.retainer_signed || false
   });
+
+  // Define validation schema using Yup
+  const validationSchema = Yup.object({
+    name: Yup.string()
+      .trim()
+      .required('Client name is required'),
+    email: Yup.string()
+      .email('Invalid email address')
+      .nullable(),
+    phone: Yup.string()
+      .matches(/^(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/, 'Invalid phone number format')
+      .nullable(),
+    total_balance: Yup.number()
+      .transform((value) => (isNaN(value) ? undefined : value))
+      .min(0, 'Total balance cannot be negative')
+      .nullable(),
+    paid_amount: Yup.number()
+      .transform((value) => (isNaN(value) ? undefined : value))
+      .min(0, 'Paid amount cannot be negative')
+      .test(
+        'paid-amount-test',
+        'Paid amount cannot exceed total balance',
+        function(value) {
+          const { total_balance } = this.parent;
+          if (!value || !total_balance) return true;
+          return value <= total_balance;
+        }
+      )
+      .nullable(),
+    next_due_date: Yup.date()
+      .nullable()
+      .min(new Date(), 'Due date cannot be in the past'),
+    status: Yup.string()
+      .oneOf(['Active', 'Past Due', 'Paid in Full', 'Inactive'], 'Invalid status')
+      .required('Status is required'),
+    retainer_signed: Yup.boolean()
+  });
   
   // Handle input change
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: newValue
     }));
+    
+    // Clear the specific error when field is changed
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
+  };
+  
+  // Validate a single field
+  const validateField = async (name, value) => {
+    try {
+      // Extract the specific field's schema
+      const fieldSchema = Yup.reach(validationSchema, name);
+      await fieldSchema.validate(value);
+      return undefined;
+    } catch (error) {
+      return error.message;
+    }
+  };
+
+  // Handle blur event for immediate validation feedback
+  const handleBlur = async (e) => {
+    const { name, value } = e.target;
+    const error = await validateField(name, value);
+    
+    if (error) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: error
+      }));
+    }
+  };
+  
+  // Validate all form data
+  const validateForm = async () => {
+    try {
+      await validationSchema.validate(formData, { abortEarly: false });
+      return {};
+    } catch (error) {
+      const validationErrors = {};
+      
+      if (error.inner) {
+        error.inner.forEach(err => {
+          validationErrors[err.path] = err.message;
+        });
+      }
+      
+      return validationErrors;
+    }
   };
   
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
     
     try {
-      // Validate form data
-      if (!formData.name.trim()) {
-        throw new Error('Client name is required');
+      // Validate form data using Yup
+      const validationErrors = await validateForm();
+      
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        throw new Error('Please fix the form errors');
       }
       
-      // Ensure numeric fields are valid
-      const totalBalance = parseFloat(formData.total_balance) || 0;
-      const paidAmount = parseFloat(formData.paid_amount) || 0;
-      
-      if (totalBalance < 0) {
-        throw new Error('Total balance cannot be negative');
-      }
-      
-      if (paidAmount < 0) {
-        throw new Error('Paid amount cannot be negative');
-      }
-      
-      if (paidAmount > totalBalance) {
-        throw new Error('Paid amount cannot exceed total balance');
-      }
-      
-      // Format client data
+      // Format client data (ensuring numeric values)
       const clientData = {
         ...formData,
-        total_balance: totalBalance,
-        paid_amount: paidAmount
+        total_balance: parseFloat(formData.total_balance) || 0,
+        paid_amount: parseFloat(formData.paid_amount) || 0
       };
       
       // Add or update client
@@ -89,8 +166,10 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
       onClose();
     } catch (error) {
       console.error('Error saving client:', error);
-      setError(error.message);
-      addNotification(`Error: ${error.message}`, NotificationType.ALERT);
+      if (!Object.keys(errors).length) {
+        // Only show general error if there are no field-specific errors
+        addNotification(`Error: ${error.message}`, NotificationType.ALERT);
+      }
     } finally {
       setLoading(false);
     }
@@ -106,9 +185,11 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
             type="text"
             value={formData.name}
             onChange={handleChange}
-            className="form-input"
+            onBlur={handleBlur}
+            className={`form-input ${errors.name ? 'form-input-error' : ''}`}
             required
           />
+          {errors.name && <div className="error-message">{errors.name}</div>}
         </div>
         
         <div className="form-group">
@@ -118,8 +199,10 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
             type="email"
             value={formData.email}
             onChange={handleChange}
-            className="form-input"
+            onBlur={handleBlur}
+            className={`form-input ${errors.email ? 'form-input-error' : ''}`}
           />
+          {errors.email && <div className="error-message">{errors.email}</div>}
         </div>
         
         <div className="form-group">
@@ -129,9 +212,11 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
             type="tel"
             value={formData.phone}
             onChange={handleChange}
-            className="form-input"
+            onBlur={handleBlur}
+            className={`form-input ${errors.phone ? 'form-input-error' : ''}`}
             placeholder="(555) 123-4567"
           />
+          {errors.phone && <div className="error-message">{errors.phone}</div>}
         </div>
         
         <div className="form-group">
@@ -153,9 +238,11 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
             step="0.01"
             value={formData.total_balance}
             onChange={handleChange}
-            className="form-input"
+            onBlur={handleBlur}
+            className={`form-input ${errors.total_balance ? 'form-input-error' : ''}`}
             placeholder="0.00"
           />
+          {errors.total_balance && <div className="error-message">{errors.total_balance}</div>}
         </div>
         
         <div className="form-group">
@@ -166,9 +253,11 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
             step="0.01"
             value={formData.paid_amount}
             onChange={handleChange}
-            className="form-input"
+            onBlur={handleBlur}
+            className={`form-input ${errors.paid_amount ? 'form-input-error' : ''}`}
             placeholder="0.00"
           />
+          {errors.paid_amount && <div className="error-message">{errors.paid_amount}</div>}
         </div>
         
         <div className="form-group">
@@ -178,8 +267,10 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
             type="date"
             value={formData.next_due_date}
             onChange={handleChange}
-            className="form-input"
+            onBlur={handleBlur}
+            className={`form-input ${errors.next_due_date ? 'form-input-error' : ''}`}
           />
+          {errors.next_due_date && <div className="error-message">{errors.next_due_date}</div>}
         </div>
         
         <div className="form-group">
@@ -200,13 +291,15 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
             name="status"
             value={formData.status}
             onChange={handleChange}
-            className="form-select"
+            onBlur={handleBlur}
+            className={`form-select ${errors.status ? 'form-input-error' : ''}`}
           >
             <option value="Active">Active</option>
             <option value="Past Due">Past Due</option>
             <option value="Paid in Full">Paid in Full</option>
             <option value="Inactive">Inactive</option>
           </select>
+          {errors.status && <div className="error-message">{errors.status}</div>}
         </div>
         
         <div className="form-group">
@@ -235,9 +328,9 @@ const ClientForm = ({ initialData = {}, isEdit = false, onClose }) => {
         </label>
       </div>
       
-      {error && (
+      {Object.keys(errors).length > 0 && (
         <div className="form-error">
-          {error}
+          Please fix the errors in the form
         </div>
       )}
       

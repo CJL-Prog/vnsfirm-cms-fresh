@@ -7,13 +7,14 @@ import './styles/specialized.css';
 import App from './App';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import reportWebVitals from './reportWebVitals';
+import GlobalErrorBoundary from './components/common/GlobalErrorBoundary';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
+    <GlobalErrorBoundary>
       <App />
-    </ErrorBoundary>
+    </GlobalErrorBoundary>
   </React.StrictMode>
 );
 

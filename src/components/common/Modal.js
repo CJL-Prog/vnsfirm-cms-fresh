@@ -64,8 +64,34 @@ const Modal = ({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  // In Modal.js
+useEffect(() => {
+  if (isOpen) {
+    // Store current active element to restore focus later
+    const previouslyFocused = document.activeElement;
+    
+    // Find focusable elements in modal
+    const focusableElements = modalRef.current.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    if (focusableElements.length > 0) {
+      // Focus the first element
+      focusableElements[0].focus();
+    }
+    
+    return () => {
+      // Restore focus when modal closes
+      if (previouslyFocused) {
+        previouslyFocused.focus();
+      }
+    };
+  }
+}, [isOpen]);
   
   if (!isOpen) return null;
+
   
   // Get size class
   const getSizeClass = () => {
@@ -103,5 +129,39 @@ const Modal = ({
     </div>
   );
 };
+
+// In Modal.js
+return (
+  <div 
+    className="modal-overlay" 
+    aria-modal="true" 
+    role="dialog"
+    aria-labelledby={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`}
+  >
+    <div 
+      className={`modal ${getSizeClass()}`} 
+      ref={modalRef}
+    >
+      <div className="modal-header">
+        <h2 
+          className="modal-title" 
+          id={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`}
+        >
+          {title}
+        </h2>
+        <button 
+          className="modal-close-button"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <X size={24} />
+        </button>
+      </div>
+      <div className="modal-content">
+        {children}
+      </div>
+    </div>
+  </div>
+);
 
 export default Modal;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Eye, Mail, MessageSquare, Phone, User, TrendingUp } from 'lucide-react';
 
 /**
@@ -151,4 +151,4 @@ const PastDueTable = ({
   );
 };
 
-export default PastDueTable;
+export default memo(PastDueTable);

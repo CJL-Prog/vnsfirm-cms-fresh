@@ -3,7 +3,42 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+/**
+ * Gets the CSRF token from the meta tag in the document
+ * @returns {string|null} - The CSRF token or null if not found
+ */
+export const getCsrfToken = () => {
+  const metaTag = document.querySelector('meta[name="csrf-token"]');
+  return metaTag ? metaTag.getAttribute('content') : null;
+};
+
+/**
+ * Create Supabase client with global headers for CSRF protection
+ */
+const createSupabaseClient = () => {
+  const options = {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true
+    }
+  };
+  
+  // Add global headers if in browser environment
+  if (typeof document !== 'undefined') {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      options.global = {
+        headers: {
+          'X-CSRF-Token': csrfToken
+        }
+      };
+    }
+  }
+  
+  return createClient(supabaseUrl, supabaseAnonKey, options);
+};
+
+export const supabase = createSupabaseClient();
 
 /**
  * Handles Supabase errors and returns user-friendly error messages

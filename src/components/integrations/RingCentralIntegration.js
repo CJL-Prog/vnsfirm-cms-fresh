@@ -96,8 +96,8 @@ const RingCentralIntegration = ({ onBack }) => {
   };
 
   return (
-    <div className="integration-detail-container">
-      <div className="back-button-container">
+    <div className="main">
+      <div className="flex items-center mb-lg">
         <button 
           onClick={onBack}
           className="button button-outline"
@@ -109,23 +109,32 @@ const RingCentralIntegration = ({ onBack }) => {
       
       <h2 className="section-title">RingCentral Integration</h2>
       
-      <div className="grid grid-cols-1 grid-cols-2">
+      <div className="grid grid-cols-1 grid-cols-2 gap-lg">
         {/* Connection Status */}
         <div className="card">
-          <h3 className="card-title">Connection Status</h3>
+          <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: '600', marginBottom: 'var(--space-md)' }}>
+            Connection Status
+          </h3>
           
-          <div className={`connection-status-box ${connectionStatus.connected ? 'connection-status-success' : 'connection-status-error'}`}>
-            <div className="connection-status-message">
+          <div style={{
+            padding: 'var(--space-md)',
+            backgroundColor: connectionStatus.connected ? '#d1fae5' : '#fee2e2',
+            color: connectionStatus.connected ? '#065f46' : 'var(--color-primary)',
+            borderRadius: 'var(--radius-md)',
+            border: `1px solid ${connectionStatus.connected ? '#86efac' : '#fca5a5'}`,
+            marginBottom: 'var(--space-md)'
+          }}>
+            <div style={{ fontWeight: '500' }}>
               {connectionStatus.message}
             </div>
             {connectionStatus.lastTested && (
-              <div className="connection-status-timestamp">
+              <div style={{ fontSize: 'var(--font-sm)', opacity: '0.8', marginTop: 'var(--space-xs)' }}>
                 Last tested: {connectionStatus.lastTested.toLocaleString()}
               </div>
             )}
           </div>
           
-          <div className="button-group mt-md">
+          <div className="flex gap-md">
             <button 
               onClick={testConnection}
               className="button button-success"
@@ -138,21 +147,28 @@ const RingCentralIntegration = ({ onBack }) => {
         
         {/* Configuration */}
         <div className="card">
-          <h3 className="card-title">Configuration</h3>
+          <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: '600', marginBottom: 'var(--space-md)' }}>
+            Configuration
+          </h3>
           
-          <div className="info-box">
-            <div className="info-row">
+          <div style={{
+            backgroundColor: 'var(--color-background)',
+            padding: 'var(--space-md)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: 'var(--space-md)'
+          }}>
+            <div style={{ marginBottom: 'var(--space-sm)' }}>
               <strong>Environment:</strong> Production
             </div>
-            <div className="info-row">
+            <div style={{ marginBottom: 'var(--space-sm)' }}>
               <strong>API Version:</strong> v1.0
             </div>
-            <div className="info-row">
+            <div style={{ marginBottom: 'var(--space-sm)' }}>
               <strong>Features:</strong> SMS, Voice Calls
             </div>
           </div>
           
-          <form className="integration-form">
+          <form>
             <div className="form-group">
               <label className="form-label">Client ID</label>
               <input 
@@ -188,49 +204,93 @@ const RingCentralIntegration = ({ onBack }) => {
       
       {/* Usage Statistics */}
       <div className="card mt-lg">
-        <h3 className="card-title">Usage Statistics</h3>
+        <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: '600', marginBottom: 'var(--space-md)' }}>
+          Usage Statistics
+        </h3>
         
         {connectionStatus.connected ? (
           <>
-            <div className="grid grid-cols-2 grid-cols-3">
-              <div className="usage-stat-box">
-                <div className="usage-stat-icon">
+            <div className="grid grid-cols-2 grid-cols-3 gap-lg">
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: 'var(--space-lg)',
+                backgroundColor: 'var(--color-background)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--color-border)'
+              }}>
+                <div style={{ marginRight: 'var(--space-md)' }}>
                   <MessageSquare size={24} color="#059669" />
                 </div>
-                <div className="usage-stat-content">
-                  <div className="usage-stat-value">{usageStats.smsSent}</div>
-                  <div className="usage-stat-label">SMS Sent This Month</div>
+                <div>
+                  <div style={{ fontSize: 'var(--font-xl)', fontWeight: '600', color: 'var(--color-text)' }}>
+                    {usageStats.smsSent}
+                  </div>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--color-text-secondary)' }}>
+                    SMS Sent This Month
+                  </div>
                 </div>
               </div>
               
-              <div className="usage-stat-box">
-                <div className="usage-stat-icon">
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: 'var(--space-lg)',
+                backgroundColor: 'var(--color-background)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--color-border)'
+              }}>
+                <div style={{ marginRight: 'var(--space-md)' }}>
                   <Phone size={24} color="#f59e0b" />
                 </div>
-                <div className="usage-stat-content">
-                  <div className="usage-stat-value">{usageStats.callsMade}</div>
-                  <div className="usage-stat-label">Calls Made This Month</div>
+                <div>
+                  <div style={{ fontSize: 'var(--font-xl)', fontWeight: '600', color: 'var(--color-text)' }}>
+                    {usageStats.callsMade}
+                  </div>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--color-text-secondary)' }}>
+                    Calls Made This Month
+                  </div>
                 </div>
               </div>
               
-              <div className="usage-stat-box">
-                <div className="usage-stat-content">
-                  <div className="usage-stat-value">{usageStats.deliveryRate}%</div>
-                  <div className="usage-stat-label">Delivery Success Rate</div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'var(--space-lg)',
+                backgroundColor: 'var(--color-background)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--color-border)'
+              }}>
+                <div className="text-center">
+                  <div style={{ fontSize: 'var(--font-xl)', fontWeight: '600', color: 'var(--color-text)' }}>
+                    {usageStats.deliveryRate}%
+                  </div>
+                  <div style={{ fontSize: 'var(--font-sm)', color: 'var(--color-text-secondary)' }}>
+                    Delivery Success Rate
+                  </div>
                 </div>
               </div>
             </div>
             
-            <div className="info-box mt-md">
-              <h4 className="info-title">Sending Limits</h4>
-              <p className="info-text">
+            <div style={{
+              backgroundColor: 'var(--color-background)',
+              padding: 'var(--space-lg)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              marginTop: 'var(--space-lg)'
+            }}>
+              <h4 style={{ fontSize: 'var(--font-md)', fontWeight: '600', marginBottom: 'var(--space-sm)' }}>
+                Sending Limits
+              </h4>
+              <p style={{ fontSize: 'var(--font-sm)', color: 'var(--color-text-secondary)', lineHeight: '1.5', margin: '0' }}>
                 Your current plan allows for up to 1,000 SMS messages and 500 voice minutes per month.
                 You've used {usageStats.smsSent} SMS messages and approximately {Math.round(usageStats.callsMade * 3.5)} voice minutes this month.
               </p>
             </div>
           </>
         ) : (
-          <div className="empty-state">
+          <div className="text-center" style={{ padding: 'var(--space-2xl)', color: 'var(--color-text-secondary)' }}>
             <p>Connect to RingCentral to view usage statistics</p>
           </div>
         )}
