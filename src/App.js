@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './styles/global.css';
+import './styles/design-system.css';
+import './styles/components.css';
+import './styles/specialized.css';
 
 // Safe imports with error handling
 let AuthProvider, useAuth, ClientsProvider, NotificationsProvider;

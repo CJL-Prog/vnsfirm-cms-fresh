@@ -26,7 +26,7 @@ const Navigation = ({ activeTab, setActiveTab }) => {
 
   return (
     <nav className="nav">
-      <div className="nav-content">
+      <div className="card">
         {navItems.map((tab) => (
           <button
             key={tab.id}
