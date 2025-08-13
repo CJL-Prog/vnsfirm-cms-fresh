@@ -171,20 +171,8 @@
   --z-tooltip: 1070;
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #111827;
-    --color-surface: #1f2937;
-    --color-card: #1f2937;
-    --color-text: #f9fafb;
-    --color-text-secondary: #9ca3af;
-    --color-text-muted: #6b7280;
-    --color-border: #374151;
-    --color-border-light: #4b5563;
-    --color-input-border: #4b5563;
-  }
-}
+/* Dark Mode Disabled - Force Light Mode Always */
+/* Removed automatic dark mode detection */
 
 /* Utility Classes */
 .text-center { text-align: center; }
