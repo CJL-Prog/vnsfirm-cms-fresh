@@ -63,9 +63,27 @@ Before deploying, ensure you have the following environment variables:
 #### C. Configure Environment Variables in Vercel
 
 1. Go to your project settings in Vercel Dashboard
-2. Navigate to "Environment Variables"
-3. Add each variable with appropriate values
-4. Ensure variables are available for Production, Preview, and Development
+2. Navigate to "Environment Variables"  
+3. Add each variable with appropriate values:
+
+**Required Variables:**
+- Variable: `REACT_APP_SUPABASE_URL`
+  - Value: `https://your-project.supabase.co`
+  - Environments: Production, Preview, Development
+
+- Variable: `REACT_APP_SUPABASE_ANON_KEY`  
+  - Value: `your-supabase-anon-key`
+  - Environments: Production, Preview, Development
+
+**Optional Variables (for integrations):**
+- `REACT_APP_LAWPAY_API_KEY`
+- `REACT_APP_LAWPAY_API_SECRET` 
+- `REACT_APP_LAWPAY_ENVIRONMENT`
+- `REACT_APP_TRELLO_API_KEY`
+- `REACT_APP_TRELLO_TOKEN`
+
+4. Click "Save" after adding each variable
+5. Redeploy your project after adding variables
 
 ### Option 2: GitHub Actions + Vercel
 
