@@ -9,6 +9,7 @@ import { NotificationsProvider } from './contexts/NotificationsContext';
 import AuthContainer from './components/auth/AuthContainer';
 import Layout from './components/layout/Layout';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import EnvironmentChecker from './components/common/EnvironmentChecker';
 
 /**
  * AuthContent component - handles authenticated vs non-authenticated states
@@ -50,14 +51,16 @@ const AuthContent = () => {
 const App = () => {
   return (
     <ErrorBoundary>
-      <div className="skip-link-container">
-        <a href="#main-content" className="skip-link">
-          Skip to main content
-        </a>
-      </div>
-      <AuthProvider>
-        <AuthContent />
-      </AuthProvider>
+      <EnvironmentChecker>
+        <div className="skip-link-container">
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+        </div>
+        <AuthProvider>
+          <AuthContent />
+        </AuthProvider>
+      </EnvironmentChecker>
     </ErrorBoundary>
   );
 };
