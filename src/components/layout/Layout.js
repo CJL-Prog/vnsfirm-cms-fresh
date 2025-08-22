@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import Header from './Header';
 import Navigation from './Navigation';
-import DashboardTab from '../dashboard/DashboardTab';
-import ClientsTab from '../clients/ClientsTab';
-import CollectionsTab from '../collections/CollectionsTab';
-import IntegrationsTab from '../integrations/IntegrationsTab';
-import SettingsTab from '../Settings/SettingsTab';
 import ErrorBoundary from '../common/ErrorBoundary';
+
+// Lazy load tab components for code splitting
+const DashboardTab = lazy(() => import('../dashboard/DashboardTab'));
+const ClientsTab = lazy(() => import('../clients/ClientsTab'));
+const CollectionsTab = lazy(() => import('../collections/CollectionsTab'));
+const IntegrationsTab = lazy(() => import('../integrations/IntegrationsTab'));
+const SettingsTab = lazy(() => import('../Settings/SettingsTab'));
 
 /**
  * Main Layout Component
@@ -15,64 +17,40 @@ import ErrorBoundary from '../common/ErrorBoundary';
 const Layout = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Loading component for Suspense fallback
+  const TabLoader = () => (
+    <div className="tab-loader">
+      <div className="loading-spinner"></div>
+      <p>Loading content...</p>
+    </div>
+  );
+
   // Render the content based on active tab
   const renderTabContent = () => {
-    try {
+    const TabComponent = (() => {
       switch (activeTab) {
         case 'dashboard':
-          return (
-            <ErrorBoundary>
-              <DashboardTab />
-            </ErrorBoundary>
-          );
+          return DashboardTab;
         case 'clients':
-          return (
-            <ErrorBoundary>
-              <ClientsTab />
-            </ErrorBoundary>
-          );
+          return ClientsTab;
         case 'collections':
-          return (
-            <ErrorBoundary>
-              <CollectionsTab />
-            </ErrorBoundary>
-          );
+          return CollectionsTab;
         case 'integrations':
-          return (
-            <ErrorBoundary>
-              <IntegrationsTab />
-            </ErrorBoundary>
-          );
+          return IntegrationsTab;
         case 'settings':
-          return (
-            <ErrorBoundary>
-              <SettingsTab />
-            </ErrorBoundary>
-          );
+          return SettingsTab;
         default:
-          return (
-            <ErrorBoundary>
-              <DashboardTab />
-            </ErrorBoundary>
-          );
+          return DashboardTab;
       }
-    } catch (error) {
-      console.error('Error rendering tab content:', error);
-      return (
-        <div className="container">
-          <div className="card">
-            <h2>Unable to load content</h2>
-            <p>There was an error loading this section. Please try refreshing the page.</p>
-            <button 
-              className="button button-primary" 
-              onClick={() => window.location.reload()}
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
-      );
-    }
+    })();
+
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<TabLoader />}>
+          <TabComponent />
+        </Suspense>
+      </ErrorBoundary>
+    );
   };
 
   return (

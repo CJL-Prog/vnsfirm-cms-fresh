@@ -1,70 +1,246 @@
-# Getting Started with Create React App
+# VNS Firm CMS - Client Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive client management system built for law firms and professional services, featuring client tracking, collections management, integrations, and more.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+### Core Functionality
+- **Dashboard**: Real-time metrics, charts, and actionable insights
+- **Client Management**: Complete client lifecycle management with profiles, documents, and communication tracking
+- **Collections**: Past due tracking, payment collection workflows, and automated reminders
+- **Integrations**: Pre-built integrations with popular services
+- **Settings**: User profiles, security settings, notifications, and system configuration
 
-### `npm start`
+### Integrations
+- **DocuSign**: Document signing and management
+- **LawPay**: Payment processing for law firms
+- **Slack**: Team communication and notifications
+- **Trello**: Task and project management
+- **Gmail**: Email integration (coming soon)
+- **RingCentral**: VoIP and communication (coming soon)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Tech Stack
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Frontend**: React 19, React Scripts 5
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Styling**: Custom CSS with design system
+- **Testing**: Jest, React Testing Library, Cypress
+- **Deployment**: Vercel
 
-### `npm test`
+## Prerequisites
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js 18+ and npm 9+
+- Supabase account and project
+- API keys for integrations (optional)
 
-### `npm run build`
+## Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/vnsfirm-cms-fresh.git
+cd vnsfirm-cms-fresh
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. Install dependencies:
+```bash
+npm install --legacy-peer-deps
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. Create a `.env` file based on `.env.example`:
+```bash
+cp .env.example .env
+```
 
-### `npm run eject`
+4. Configure your environment variables:
+```env
+# Supabase (Required)
+REACT_APP_SUPABASE_URL=your_supabase_url
+REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# Optional Integrations
+REACT_APP_LAWPAY_API_KEY=your_lawpay_api_key
+REACT_APP_LAWPAY_API_SECRET=your_lawpay_api_secret
+REACT_APP_LAWPAY_ENVIRONMENT=sandbox
+REACT_APP_TRELLO_API_KEY=your_trello_api_key
+REACT_APP_TRELLO_TOKEN=your_trello_token
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Database Setup
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Supabase Tables
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Create the following tables in your Supabase project:
 
-## Learn More
+#### Clients Table
+```sql
+CREATE TABLE clients (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  address TEXT,
+  status VARCHAR(50) DEFAULT 'active',
+  balance DECIMAL(10, 2) DEFAULT 0,
+  outstanding_balance DECIMAL(10, 2) DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+-- Enable RLS
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+-- Create policy
+CREATE POLICY "Users can manage their own clients" ON clients
+  FOR ALL USING (auth.uid() = user_id);
+```
 
-### Code Splitting
+#### Notifications Table
+```sql
+CREATE TABLE notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  message TEXT,
+  type VARCHAR(50) DEFAULT 'info',
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+-- Enable RLS
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
-### Analyzing the Bundle Size
+-- Create policy
+CREATE POLICY "Users can view their own notifications" ON notifications
+  FOR ALL USING (auth.uid() = user_id);
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Development
 
-### Making a Progressive Web App
+### Start the development server:
+```bash
+npm start
+```
+The app will open at [http://localhost:3000](http://localhost:3000)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Run tests:
+```bash
+# Unit tests
+npm test
 
-### Advanced Configuration
+# E2E tests with Cypress
+npx cypress open
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Build for production:
+```bash
+npm run build
+```
 
-### Deployment
+### Analyze bundle size:
+```bash
+npm run analyze
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Project Structure
 
-### `npm run build` fails to minify
+```
+vnsfirm-cms-fresh/
+├── public/                 # Static assets
+├── src/
+│   ├── assets/            # Images and media
+│   ├── components/        # React components
+│   │   ├── auth/         # Authentication components
+│   │   ├── clients/      # Client management
+│   │   ├── collections/  # Collections features
+│   │   ├── common/       # Shared components
+│   │   ├── dashboard/    # Dashboard components
+│   │   ├── integrations/ # Integration components
+│   │   ├── layout/       # Layout components
+│   │   └── Settings/     # Settings components
+│   ├── contexts/          # React contexts
+│   ├── hooks/            # Custom hooks
+│   ├── lib/              # Third-party configurations
+│   ├── services/         # API and business logic
+│   ├── styles/           # Global styles
+│   └── utils/            # Utility functions
+├── supabase/             # Supabase functions
+└── cypress/              # E2E tests
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Deployment
+
+### Vercel Deployment
+
+1. Install Vercel CLI:
+```bash
+npm i -g vercel
+```
+
+2. Deploy:
+```bash
+vercel
+```
+
+3. Set environment variables in Vercel dashboard
+
+### GitHub Actions CI/CD
+
+The project includes GitHub Actions workflow for:
+- Automated testing on pull requests
+- Build verification
+- Deployment to production on main branch
+
+## Security Considerations
+
+- **Authentication**: Secured via Supabase Auth with JWT tokens
+- **Row Level Security**: Enabled on all database tables
+- **CSRF Protection**: Implemented in API calls
+- **Input Validation**: Using Yup for form validation
+- **Environment Variables**: Sensitive data stored in environment variables
+- **HTTPS**: Enforced in production
+
+## Performance Optimizations
+
+- **Code Splitting**: Lazy loading for routes
+- **React.memo**: Used for expensive components
+- **Virtual Scrolling**: Implemented for large lists
+- **Caching**: API response caching
+- **Bundle Optimization**: Tree shaking and minification
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is proprietary and confidential.
+
+## Support
+
+For support, email support@vnsfirm.com or create an issue in the repository.
+
+## Roadmap
+
+- [ ] Advanced reporting and analytics
+- [ ] Mobile application
+- [ ] AI-powered document analysis
+- [ ] Automated billing workflows
+- [ ] Multi-language support
+- [ ] Advanced search and filtering
+- [ ] Batch operations
+- [ ] Audit logging
+- [ ] Two-factor authentication
+- [ ] Webhook integrations

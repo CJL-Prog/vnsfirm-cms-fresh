@@ -1,9 +1,35 @@
 // src/components/clients/ClientsTab.test.js
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { AuthProvider } from '../../contexts/AuthContext';
 import { ClientsProvider } from '../../contexts/ClientsContext';
 import { NotificationsProvider } from '../../contexts/NotificationsContext';
 import ClientsTab from './ClientsTab';
+
+// Mock Supabase
+jest.mock('../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn(() => Promise.resolve({ 
+        data: { 
+          session: { 
+            user: { id: 'test-user-id', email: 'test@example.com' } 
+          } 
+        }, 
+        error: null 
+      })),
+      onAuthStateChange: jest.fn(() => ({ 
+        data: { subscription: { unsubscribe: jest.fn() } }, 
+        error: null 
+      }))
+    },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
+      }))
+    }))
+  }
+}));
 
 // Mock contexts
 jest.mock('../../contexts/ClientsContext', () => ({
@@ -25,11 +51,13 @@ jest.mock('../../contexts/ClientsContext', () => ({
 describe('ClientsTab integration', () => {
   test('renders client list and search', () => {
     render(
-      <NotificationsProvider>
-        <ClientsProvider>
-          <ClientsTab />
-        </ClientsProvider>
-      </NotificationsProvider>
+      <AuthProvider>
+        <NotificationsProvider>
+          <ClientsProvider>
+            <ClientsTab />
+          </ClientsProvider>
+        </NotificationsProvider>
+      </AuthProvider>
     );
     
     expect(screen.getByText('Client Management')).toBeInTheDocument();
@@ -39,11 +67,13 @@ describe('ClientsTab integration', () => {
   
   test('opens add client modal when button clicked', async () => {
     render(
-      <NotificationsProvider>
-        <ClientsProvider>
-          <ClientsTab />
-        </ClientsProvider>
-      </NotificationsProvider>
+      <AuthProvider>
+        <NotificationsProvider>
+          <ClientsProvider>
+            <ClientsTab />
+          </ClientsProvider>
+        </NotificationsProvider>
+      </AuthProvider>
     );
     
     fireEvent.click(screen.getByText('Add Client'));
