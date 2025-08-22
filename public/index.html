@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="VNS Firm Client Management System - Professional CMS for law firms"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
@@ -24,11 +24,43 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>React App</title>
+    <title>VNS Firm - Client Management System</title>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <div style="font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center;">
+        <h1>VNS Firm CMS</h1>
+        <p style="color: #e74c3c; font-size: 18px;">JavaScript Required</p>
+        <p>This application requires JavaScript to function properly.</p>
+        <p>Please enable JavaScript in your browser settings and refresh the page.</p>
+        <hr style="margin: 30px 0;">
+        <h3>Troubleshooting</h3>
+        <ul style="text-align: left; display: inline-block;">
+          <li>Enable JavaScript in your browser</li>
+          <li>Check for browser extensions blocking JavaScript</li>
+          <li>Try refreshing the page (Ctrl+F5)</li>
+          <li>Visit <a href="/debug.html">debug page</a> for more help</li>
+        </ul>
+      </div>
+    </noscript>
     <div id="root"></div>
+    
+    <!-- Error reporting for debugging -->
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('Global Error:', {
+          message: e.message,
+          filename: e.filename,
+          lineno: e.lineno,
+          colno: e.colno,
+          error: e.error
+        });
+      });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled Promise Rejection:', e.reason);
+      });
+    </script>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

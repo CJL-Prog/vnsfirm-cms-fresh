@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNS Firm CMS - Debug</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status { 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0;
+        }
+        .success { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460; 
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { 
+            background: #0056b3; 
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 VNS Firm CMS - Debug Page</h1>
+    
+    <div class="info status">
+        <h3>Environment Status</h3>
+        <p>This page helps diagnose issues with your React application deployment.</p>
+    </div>
+
+    <h2>Quick Tests</h2>
+    
+    <button onclick="testJavaScript()">Test JavaScript</button>
+    <button onclick="testFetch()">Test Network</button>
+    <button onclick="testConsole()">Check Console</button>
+    <button onclick="testEnvironment()">Test Environment</button>
+    <button onclick="location.reload()">Reload Page</button>
+    
+    <div id="test-results"></div>
+
+    <h2>Manual Checks</h2>
+    
+    <div class="info status">
+        <h4>1. Check Main App</h4>
+        <p><a href="/" target="_blank" style="color: #007bff;">Open Main App</a> - Does it load?</p>
+    </div>
+
+    <div class="info status">
+        <h4>2. Browser Console</h4>
+        <p>Press <kbd>F12</kbd> → Console tab. Look for error messages.</p>
+    </div>
+
+    <div class="info status">
+        <h4>3. Network Tab</h4>
+        <p>Press <kbd>F12</kbd> → Network tab → Reload page. Check for failed requests.</p>
+    </div>
+
+    <h2>Common Solutions</h2>
+    
+    <div class="error status">
+        <h4>❌ App Not Loading</h4>
+        <ul>
+            <li>Check environment variables in Vercel dashboard</li>
+            <li>Ensure REACT_APP_SUPABASE_URL is set</li>
+            <li>Ensure REACT_APP_SUPABASE_ANON_KEY is set</li>
+            <li>Try hard refresh (Ctrl+F5)</li>
+        </ul>
+    </div>
+
+    <div class="success status">
+        <h4>✅ Environment Variables Setup</h4>
+        <ol>
+            <li>Go to <a href="https://vercel.com/dashboard" target="_blank">Vercel Dashboard</a></li>
+            <li>Find your vnsfirm-cms-fresh project</li>
+            <li>Go to Settings → Environment Variables</li>
+            <li>Add required variables</li>
+            <li>Redeploy</li>
+        </ol>
+    </div>
+
+    <h2>Technical Information</h2>
+    <pre id="tech-info">Loading...</pre>
+
+    <script>
+        // Update technical information
+        document.getElementById('tech-info').textContent = 
+            `URL: ${window.location.href}
+User Agent: ${navigator.userAgent}
+Timestamp: ${new Date().toISOString()}
+JavaScript: Enabled
+Online: ${navigator.onLine}
+Screen: ${screen.width}x${screen.height}
+Local Storage: ${typeof(Storage) !== "undefined" ? "Supported" : "Not Supported"}`;
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            document.getElementById('test-results').appendChild(div);
+        }
+
+        function testJavaScript() {
+            try {
+                addResult('✅ JavaScript is working correctly!', 'success');
+                addResult(`📊 Performance: ${performance.now()}ms since page load`, 'info');
+            } catch (error) {
+                addResult(`❌ JavaScript error: ${error.message}`, 'error');
+            }
+        }
+
+        function testFetch() {
+            addResult('🔄 Testing network connectivity...', 'info');
+            fetch('/')
+                .then(response => {
+                    if (response.ok) {
+                        addResult('✅ Network request successful', 'success');
+                    } else {
+                        addResult(`⚠️ Network response: ${response.status}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    addResult(`❌ Network error: ${error.message}`, 'error');
+                });
+        }
+
+        function testConsole() {
+            addResult('📝 Check browser console (F12) for detailed errors', 'info');
+            console.log('🔍 Debug page accessed at:', new Date().toISOString());
+            console.log('📍 Current URL:', window.location.href);
+            console.log('🌐 User Agent:', navigator.userAgent);
+        }
+
+        function testEnvironment() {
+            addResult('🔍 Environment test - check main app for detailed results', 'info');
+            addResult('📋 This debug page cannot access React environment variables', 'info');
+            addResult('💡 Try visiting the main app with ?debug-env parameter', 'info');
+        }
+
+        // Auto-run basic test
+        setTimeout(() => {
+            addResult('🚀 Debug page loaded successfully', 'success');
+            addResult('📱 JavaScript is enabled and functioning', 'success');
+        }, 100);
+    </script>
+</body>
+</html>
